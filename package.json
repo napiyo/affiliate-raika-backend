@@ -1,0 +1,32 @@
+{
+    "name": "express-backend",
+    "version": "1.0.0",
+    "description": "A Node.js Express backend server with JWT authentication and role-based access control.",
+    "main": "src/server.js",
+    "type": "module",
+    "scripts": {
+        "start": "node --env-file=.env src/server.js",
+        "dev": "nodemon  --env-file=.env src/server.js"
+    },
+    "dependencies": {
+        "axios": "^1.11.0",
+        "bcryptjs": "^2.4.3",
+        "cookie-parser": "^1.4.7",
+        "cors": "^2.8.5",
+        "dotenv": "^8.2.0",
+        "express": "^4.17.1",
+        "express-rate-limit": "^8.0.1",
+        "helmet": "^8.1.0",
+        "json": "^11.0.0",
+        "jsonwebtoken": "^8.5.1",
+        "mongoose": "^5.10.9",
+        "morgan": "^1.10.1",
+        "nanoid": "^5.1.5",
+        "nodemailer": "^7.0.6"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.4"
+    },
+    "author": "Your Name",
+    "license": "ISC"
+}
