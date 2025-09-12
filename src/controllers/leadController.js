@@ -80,10 +80,10 @@ export const searchLead = catchAsync(async (req, res, next) => {
         query.status = InProgressStatus;
     }
     const searchQuery = {"fields":{
-        // "referrer_email":req.body.user.email,
+        "referrer_email":req.body.user.email,
         ...query}}
     // const searchQuery = {date:query.date}
-    // query.refferer = req.body.user.email;
+    query.refferer = req.body.user.email;
 
     
     const url = `https://next.telecrm.in/autoupdate/v2/enterprise/${process.env.ENTERPRISE_ID}/lead/search?skip=${skip}&limit=${limit}`;

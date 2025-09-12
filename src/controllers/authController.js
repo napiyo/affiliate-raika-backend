@@ -117,7 +117,7 @@ export const logout = catchAsync(async (req, res, next) => {
 });
 export const protect = catchAsync(async (req, res, next) => {
     let token;
-
+    
     // Check for token in cookie
     if (req.cookies?.jwt) {
         token = req.cookies.jwt;
@@ -148,17 +148,17 @@ export const protect = catchAsync(async (req, res, next) => {
 
 export const getMe = catchAsync(async (req, res, next) => {
 
-       const {id} = req.query;
+    //    const {id} = req.query;
        let currentUser = req.body.user;
 
        
-       if(id && id != null && currentUser.role == Role.ADMIN)
-       {
+    //    if(id && id != null && currentUser.role == Role.ADMIN)
+    //    {
         
-        currentUser = await UserModel.findById(id);
-        // console.log(currentUser);
+    //     currentUser = await UserModel.findById(id);
+    //     // console.log(currentUser);
         
-       }
+    //    }
        if(!currentUser)
        {
         return next(new AppError('invalid user search',404));

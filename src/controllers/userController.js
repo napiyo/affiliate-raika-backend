@@ -106,7 +106,7 @@ export const getMyTransactions = catchAsync(async (req, res,next) => {
     }
   
     const { id } = req.query;
-    console.log("sdfasdf===",id);
+    // console.log("sdfasdf===",id);
     
     const loggedInUser = req.body.user;
   
