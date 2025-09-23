@@ -97,15 +97,16 @@ export const searchLead = catchAsync(async (req, res, next) => {
         
         const modifiedLeads =  response.data.data.map((element)=>{
             let phone = element.fields?.phone;
+            
             let email = element.fields?.email;
-
-           
-             if(phone)
+            let leadSource = element.fields?.lead_source;
+            let isManual = leadSource == LeadSource.manual;
+             if(phone && !isManual)
             {
                 const lastTwo = phone.slice(-2);
                 phone = "*".repeat(phone.length - 2) + lastTwo;
             }
-            if(email)
+            if(email && !isManual)
                 {
                     const [localPart, domain] = email.split("@");
 

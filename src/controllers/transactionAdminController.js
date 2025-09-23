@@ -6,7 +6,7 @@ import catchAsync from "../utils/catchAsync.js";
 import crypto from "crypto";
 import { sendTransactionEmail } from "../utils/emailService.js";
 import  Mongoose  from "mongoose";
-import { TRANSACTIONS_ENUM, TRANSACTIONS_TYPES } from "../utils/types.js";
+import { TRANSACTIONS_ENUM, TRANSACTIONS_TYPES, TRANSACTIONS_TYPES_FOR_SALES } from "../utils/types.js";
 const {mongoose} = Mongoose;
 // Utility to generate unique transaction IDs
 const generateTxnId = () => crypto.randomBytes(8).toString("hex");
@@ -14,12 +14,14 @@ const generateTxnId = () => crypto.randomBytes(8).toString("hex");
 
 export const addTransaction = catchAsync(async (req, res,next) => {
   const {id, amount, type, reference, comment} = req.body;
+  const {user :currentUser} = req.body;
   if( !id || !amount || !type || !reference || !comment)
   {
       return next(new AppError("All fileds email, amount, type, reference, comment are required",400));
   }
+  const transactionTypesAllowed = currentUser?.role==Role_ENUM.ADMIN?TRANSACTIONS_TYPES:currentUser?.role==Role_ENUM.SALES?TRANSACTIONS_TYPES_FOR_SALES:[]
 
-  if (!TRANSACTIONS_TYPES.includes(type)) {
+  if (!transactionTypesAllowed.includes(type)) {
     return next(new AppError("Invalid transaction type", 400));
   }
   const user = await UserModel.findById(id);
@@ -104,6 +106,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
       [
         {
           user: user._id,
+          createdBy:currentUser._id,
           type,
           amount,
           reference,

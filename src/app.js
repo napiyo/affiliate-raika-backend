@@ -36,7 +36,7 @@ app.use(
 // Routes
 app.use('/auth', authRoutes);
 app.use('/users', protect, userRoutes);
-app.use("/admin/transactions",protect,roleCheck(Role.ADMIN),transactionsAdminRoutes);
+app.use("/admin/transactions",protect,roleCheck(Role.ADMIN,Role.SALES),transactionsAdminRoutes);
 app.use('/leads',leadRoutes);
 app.use('/dashboard',protect,dashboardRoutes);
 // Error handling middleware
