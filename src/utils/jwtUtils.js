@@ -21,7 +21,6 @@ export const setCookie =(res,token)=>
         httpOnly: true,
         secure: true, 
         sameSite: 'None',
-        domain:".raikaphotography.com",
         path: "/",
     });
 }
@@ -32,7 +31,6 @@ export const clearCookie =(res,token)=>
             httpOnly: true,
             secure: true, 
             sameSite: 'None', 
-            domain:".raikaphotography.com",
             path: "/",
         });
     }

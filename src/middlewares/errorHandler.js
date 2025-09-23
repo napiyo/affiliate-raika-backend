@@ -1,20 +1,16 @@
 import jwttoken  from "jsonwebtoken";
+import { clearCookie } from "../utils/jwtUtils.js";
 const {TokenExpiredError} = jwttoken;
 const errorHandler = (err, req, res, next) => {
     // Set default status code to 500
     err.statusCode = err.statusCode || 500;
 
-    console.log(err);
+    // console.log(err);
     
     
     if((err.message && err.message.startsWith("invalid-user") )|| err instanceof TokenExpiredError)
     {
-        res.clearCookie("jwt", {
-            httpOnly: true,
-            // secure: true,
-            sameSite: 'None',
-            path: "/",
-          });
+        clearCookie(res, req.cookies?.jwt)
     }
     const tempErr = err.response?.data?.error?.message || err.response?.data?.error?.details 
     if(tempErr) err.message = tempErr;
