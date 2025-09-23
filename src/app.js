@@ -30,7 +30,7 @@ app.use(
     cors({
     
       credentials: true, 
-      origin:'http://localhost:3001'
+      origin:process.env.FRONT_END_BASE_URL
     })
   );
 // Routes
