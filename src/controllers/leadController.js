@@ -7,6 +7,7 @@ import axios from 'axios';
 import { InProgressStatus, LeadSource } from '../utils/types.js';
 import Transaction from '../models/transactionsModel.js';
 import { sendEmailToAdmin } from '../utils/emailService.js';
+import Leads from '../models/leadsModel.js';
 
 
 export const addLead = catchAsync(async (req, res, next) => {
@@ -33,7 +34,13 @@ export const addLead = catchAsync(async (req, res, next) => {
         }
     })
     
-    await LeadsModel.create({user:req.body.user._id, leadId:leadgen.data.lead_id});
+    await LeadsModel.create({user:req.body.user._id, 
+        leadId:leadgen.data.lead_id,
+        name,
+        phone,
+        email,
+        requirement:requirements,
+        alterPhone:alternatephone,});
     req.body.user.totalLeads =  req.body.user.totalLeads +1;
     await req.body.user.save();
     res.status(201).json({ success: true, data: "Lead added" });
@@ -63,8 +70,103 @@ export const getLeadbyId = catchAsync(async (req, res, next) => {
 
 });
 
-
 export const searchLead = catchAsync(async (req, res, next) => {
+    const {query={},page=0,limit=20} = req.body;
+    const skip = limit*page;
+    // if(!query)
+    //     {
+    //         return next(new AppError("query is required",400));
+    //     } 
+    if(!req.body.user)
+    {
+        return next(new AppError("User not logged in or invalid user",403));
+    }
+    if(query.status == 'InProgress')
+    {
+        query.status = InProgressStatus;
+    }
+   
+    const filter = {};
+
+    // Status can be single value or array
+    if (query.status) {
+      if (Array.isArray(query.status)) {
+        filter.status = { $in: query.status };
+      } else {
+        filter.status = query.status;
+      }
+    }
+  
+    // User filter
+   
+      filter.user = mongoose.Types.ObjectId(req.body.user._id);
+    
+  
+    // Date range
+    if (query.created_on && query.created_on.from && query.created_on.to) {
+      filter.createdAt = {
+        $gte: new Date(query.created_on.from),
+        $lte: new Date(query.created_on.to)
+      };
+    }
+
+    const data = await Leads.find(filter).sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .exec();
+
+
+        const modifiedLeads =  data.map((element)=>{
+            let phone = element.phone;
+            
+            let email = element.email || "-";
+            let leadSource = element.source;
+            let isManual = leadSource == LeadSource.manual;
+             if(phone && !isManual)
+            {
+                const lastTwo = phone.slice(-2);
+                phone = "*".repeat(phone.length - 2) + lastTwo;
+            }
+            if(email && !isManual)
+                {
+                    const [localPart, domain] = email.split("@");
+
+                    if (localPart && domain) {
+                        const visible = localPart.slice(0, Math.min(3, localPart.length));
+                        const masked = "*".repeat(Math.max(localPart.length - visible.length, 0));
+                        
+                        email =  `${visible}${masked}@${domain}`;
+                    }
+                }
+            const statusAllowed = ['New','Lost','Shoot Completed']
+            if(element?.status && !statusAllowed.includes(element.status) )
+            {
+              
+                element.status = 'InProgress'
+            }
+           
+            if(element.status && element.status === 'Shoot Completed')
+                {
+                     element.status = 'ShootCompleted';
+                }
+            return {
+                email: email || "",
+                phone,
+                name: element.fields.name,
+                requirement: element.fields.requirements,
+                source:element.fieldslead_source,
+                createdOn:element.fields.created_on,
+                status:element.status || "Lost",
+                id:element.id,
+            }
+        })
+        res.status(200).json({success:true,data:modifiedLeads});
+      
+     
+    // res.status(200).json({success:true,data:response.data});
+      
+});
+export const searchLeadinTeleCRM = catchAsync(async (req, res, next) => {
     const {query={},page=0,limit=20} = req.body;
     const skip = limit*page;
     // if(!query)
