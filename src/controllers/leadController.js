@@ -151,10 +151,10 @@ export const searchLead = catchAsync(async (req, res, next) => {
             return {
                 email: email || "",
                 phone,
-                name: element.fields.name,
-                requirement: element.fields.requirements,
-                source:element.fieldslead_source,
-                createdOn:element.fields.created_on,
+                name: element.name,
+                requirement: element.requirement,
+                source:element.source,
+                createdOn:element.createdAt,
                 status:element.status || "Lost",
                 id:element.id,
             }
