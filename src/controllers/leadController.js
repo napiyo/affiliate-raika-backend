@@ -1,13 +1,12 @@
 import UserModel from '../models/userModel.js';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/appError.js';
-import WalletModel from '../models/walletModel.js';
 import LeadsModel from '../models/leadsModel.js';
 import axios from 'axios';
 import { InProgressStatus, LeadSource } from '../utils/types.js';
-import Transaction from '../models/transactionsModel.js';
 import { sendEmailToAdmin } from '../utils/emailService.js';
 import Leads from '../models/leadsModel.js';
+import  Mongoose  from 'mongoose';
 
 
 export const addLead = catchAsync(async (req, res, next) => {
@@ -99,7 +98,7 @@ export const searchLead = catchAsync(async (req, res, next) => {
   
     // User filter
    
-      filter.user = mongoose.Types.ObjectId(req.body.user._id);
+      filter.user = Mongoose.mongoose.Types.ObjectId(req.body.user._id);
     
   
     // Date range
