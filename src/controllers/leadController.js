@@ -6,7 +6,7 @@ import axios from 'axios';
 import { InProgressStatus, LeadSource } from '../utils/types.js';
 import { sendEmailToAdmin } from '../utils/emailService.js';
 import Leads from '../models/leadsModel.js';
-import  Mongoose  from 'mongoose';
+import  mongoose  from 'mongoose';
 
 
 export const addLead = catchAsync(async (req, res, next) => {
@@ -98,7 +98,7 @@ export const searchLead = catchAsync(async (req, res, next) => {
   
     // User filter
    
-      filter.user = Mongoose.mongoose.Types.ObjectId(req.body.user._id);
+      filter.user = mongoose.Types.ObjectId(req.body.user._id);
     
   
     // Date range
