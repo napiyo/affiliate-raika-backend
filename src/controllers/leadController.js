@@ -159,7 +159,8 @@ export const searchLead = catchAsync(async (req, res, next) => {
                 id:element.id,
             }
         })
-        res.status(200).json({success:true,data:modifiedLeads});
+        const totalResults = await Leads.countDocuments(filter);
+        res.status(200).json({success:true,data:{data:modifiedLeads,totalResults,skip,limit}});
       
      
     // res.status(200).json({success:true,data:response.data});
