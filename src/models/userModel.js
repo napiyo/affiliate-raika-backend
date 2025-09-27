@@ -32,6 +32,7 @@ const userSchema = new Schema({
     phone:{
         type:String,
         required: true,
+        unique:true
     },
     balance: { type: Number, default: 0 },               
     lifetimeEarnings: { type: Number, default: 0 },   
