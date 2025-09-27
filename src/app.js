@@ -28,7 +28,6 @@ app.use(rateLimit({
 
 app.use(
     cors({
-    
       credentials: true, 
       origin:process.env.FRONT_END_BASE_URL
     })

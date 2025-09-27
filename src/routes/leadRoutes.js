@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { addLead, addLeadbyLink, getLeadbyId, searchLead, searchLeadbyAdmin, updateLead } from '../controllers/leadController.js';
+import { addLead, addLeadbyLink, checkIfTeleCRM, getLeadbyId, searchLead, searchLeadbyAdmin, updateLead } from '../controllers/leadController.js';
 import { protect } from '../controllers/authController.js';
 import { roleCheck } from '../middlewares/roleCheck.js';
 import { Role } from '../utils/types.js';
