@@ -30,7 +30,8 @@ const userSchema = new Schema({
         default: 'user',
     },
     phone:{
-        type:String
+        type:String,
+        required: true,
     },
     balance: { type: Number, default: 0 },               
     lifetimeEarnings: { type: Number, default: 0 },   

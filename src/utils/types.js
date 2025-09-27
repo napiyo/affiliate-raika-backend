@@ -25,6 +25,6 @@ export const TRANSACTIONS_ENUM = Object.freeze({
 
 });
 export const USER_ROLES = ["admin", "user",'sales','goldUser'];
+export const statusAllowed = ['New','Lost','Order Completed'] // rest all are in progress
 
-
-export const InProgressStatus = ['RNR','Hot','Follow up','Cold','Shoot Postponed','Shoot Scheduled','3d Casting Booked','3d Casting Done','Milestone Package']
+export const InProgressStatus = ['RNR','Hot','Follow up','Cold','Shoot Postponed','Shoot Scheduled','3d Casting Booked','3d Casting Done','Milestone Package', 'Shoot Completed']

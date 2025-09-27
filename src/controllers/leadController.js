@@ -3,10 +3,11 @@ import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/appError.js';
 import LeadsModel from '../models/leadsModel.js';
 import axios from 'axios';
-import { InProgressStatus, LeadSource } from '../utils/types.js';
+import { InProgressStatus, LeadSource, statusAllowed, TRANSACTIONS_ENUM } from '../utils/types.js';
 import { sendEmailToAdmin } from '../utils/emailService.js';
 import Leads from '../models/leadsModel.js';
 import  mongoose  from 'mongoose';
+import User from '../models/userModel.js';
 
 
 export const addLead = catchAsync(async (req, res, next) => {
@@ -137,16 +138,16 @@ export const searchLead = catchAsync(async (req, res, next) => {
                         email =  `${visible}${masked}@${domain}`;
                     }
                 }
-            const statusAllowed = ['New','Lost','Shoot Completed']
+           
             if(element?.status && !statusAllowed.includes(element.status) )
             {
               
                 element.status = 'InProgress'
             }
            
-            if(element.status && element.status === 'Shoot Completed')
+            if(element.status && element.status === 'Order Completed')
                 {
-                     element.status = 'ShootCompleted';
+                     element.status = 'OrderCompleted';
                 }
             return {
                 email: email || "",
@@ -271,43 +272,71 @@ export const searchLeadbyAdmin = catchAsync(async (req, res, next) => {
         res.status(200).json({success:true,data:response.data});
       
 });
-
-export const updateLead = catchAsync(async(req,res,next)=>{
-    const {amount,status,leadId}  = req.body;
+export const checkIfTeleCRM = catchAsync(async(req,res,next)=>{
     const authHeader = req.headers['authorization'];
     if (!authHeader || authHeader !== `Bearer ${process.env.LEAD_UPDATE_SECRET}`) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      return next(new AppError(" Unauthorized",401));   
     }
-    if( !leadId || !status || !amount)
+    req.body.user = await User.findById(process.env.TELECRM_USER_ID); 
+    if(!req.body.user)
+    {
+      return next(new AppError(" Unauthorized",500));   
+
+    }
+    next();
+});
+export const updateLead = catchAsync(async(req,res,next)=>{
+    const {amount,status,leadId}  = req.body;
+    
+    if( !leadId || !status )
     {
         return next(new AppError(" leadid, status are required",400));
     }
-    if(token != process.env.LEAD_UPDATE_SECRET)
-    {
-        return next(new AppError("token is not valid",403));
-    }
+    // if(token != process.env.LEAD_UPDATE_SECRET)
+    // {
+    //     return next(new AppError("token is not valid",403));
+    // }
    const lead =  await LeadsModel.findOne(
         { leadId: leadId }); 
-    const userInDb = await UserModel.findById(lead.user);
+    if(!lead)
+    {
+        res.status(201).json({success:true,data:"Lead is not availabe at our platform"});
+    // setting success so CRM we dont treat as failure of commission add
+        return;
+    }
+    // const userInDb = await UserModel.findById(lead.user);
    
-    if(lead.status == CREDIT_IF_STAGE_IS )
+    if(lead.status == CREDIT_IF_STAGE_IS)
     {
         // status changes, debit credit amount
-        sendEmailToAdmin(amount,leadId,userInDb.email);
+        // sendEmailToAdmin(amount,leadId,userInDb.email);
         return next(new AppError("Lead is already completed, you can not add more amount"));
         
     }
-    if(lead.status != CREDIT_IF_STAGE_IS && status == CREDIT_IF_STAGE_IS)
+    
+    if(lead.status != status)
     {
-        req.body.type = "CREDIT";
+        lead.status == status;
+        await lead.save();
+    }
+    if(status == CREDIT_IF_STAGE_IS)
+    {
+        return next(new AppError("Lead is already completed, you can not add more amount"));
+    }
+    if( amount && amount > 0)
+    {
+        req.body.type = TRANSACTIONS_ENUM.CREDIT;
         req.body.reference = leadId;
-        req.body.email = userInDb.email;
-        req.body.user = userInDb;
-        req.body.comment = "commission for lead"
+        req.body.id = lead.user;
+        req.body.lead = lead;
+        // req.body.email = userInDb.email;
+        // req.body.user = process.env.TELECRM_USER_ID;
+        req.body.comment = "AUTO: commission for lead"
 
         
        return next();
     }
+   
     
     res.status(400).json({success:false,data:"something went wrong"});
 })
