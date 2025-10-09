@@ -5,7 +5,7 @@ const errorHandler = (err, req, res, next) => {
     // Set default status code to 500
     err.statusCode = err.statusCode || 500;
 
-    // console.log(err);
+    console.log(err);
     
     
     if((err.message && err.message.startsWith("invalid-user") )|| err instanceof TokenExpiredError)

@@ -283,7 +283,7 @@ export const checkIfTeleCRM = catchAsync(async(req,res,next)=>{
     req.body.user = await User.findById(process.env.TELECRM_USER_ID); 
     if(!req.body.user)
     {
-      return next(new AppError(" Unauthorized",500));   
+      return next(new AppError("Telecrm user not found",500));   
 
     }
     next();
