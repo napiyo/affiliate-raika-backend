@@ -55,7 +55,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
   
           // add royalty points
           const pointTobeAdded = amount * 0.05;
-          let customer = await UserModel.findOne(req.body.lead.phone);
+          let customer = await UserModel.findOne({phone:req.body.lead.phone});
           if(customer)
           {
             customer.points = (customer.points||0)+pointTobeAdded;
