@@ -39,6 +39,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
   const session = await Mongoose.startSession();
   session.startTransaction();
   
+ console.log("lead is ",req.body.lead);
  
   let commision = amount;
   try {
@@ -69,6 +70,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
                 {
                   name: req.body.lead.name,
                   email:req.body.lead.email,
+                  phone:req.body.lead.phone,
                   password:"sdjfalsdjfeijlkasdjf",
                   points:pointTobeAdded,
                   lifetimePointsEarnings:pointTobeAdded
