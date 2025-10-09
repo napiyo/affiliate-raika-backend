@@ -67,8 +67,8 @@ export const addTransaction = catchAsync(async (req, res,next) => {
              customer =  await UserModel.create(
               [
                 {
-                  name: lead.name,
-                  email:lead.email,
+                  name: req.body.lead.name,
+                  email:req.body.lead.email,
                   password:"sdjfalsdjfeijlkasdjf",
                   points:pointTobeAdded,
                   lifetimePointsEarnings:pointTobeAdded
