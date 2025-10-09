@@ -309,7 +309,7 @@ export const updateLead = catchAsync(async(req,res,next)=>{
     }
     // const userInDb = await UserModel.findById(lead.user);
    
-    if(lead.status == CREDIT_IF_STAGE_IS)
+    if(lead.status == process.env.CREDIT_IF_STAGE_IS)
     {
         // status changes, debit credit amount
         // sendEmailToAdmin(amount,leadId,userInDb.email);
@@ -322,7 +322,7 @@ export const updateLead = catchAsync(async(req,res,next)=>{
         lead.status == status;
         await lead.save();
     }
-    if(status == CREDIT_IF_STAGE_IS)
+    if(status == process.env.CREDIT_IF_STAGE_IS)
     {
         return next(new AppError("Lead is already completed, you can not add more amount"));
     }
