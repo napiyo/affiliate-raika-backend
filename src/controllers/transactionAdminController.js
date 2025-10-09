@@ -23,7 +23,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
   {
     return next(new AppError("Invalid amount it must > 0",400));
   }
-  const transactionTypesAllowed = currentUser?.role==Role_ENUM.ADMIN?TRANSACTIONS_TYPES:currentUser?.role==Role_ENUM.SALES?TRANSACTIONS_TYPES_FOR_SALES:[]
+  const transactionTypesAllowed = currentUser?.role==Role.ADMIN?TRANSACTIONS_TYPES:currentUser?.role==Role.SALES?TRANSACTIONS_TYPES_FOR_SALES:[]
   if (!transactionTypesAllowed.includes(type)) {
     return next(new AppError("Invalid transaction type", 400));
   }
