@@ -274,6 +274,9 @@ export const searchLeadbyAdmin = catchAsync(async (req, res, next) => {
 });
 export const checkIfTeleCRM = catchAsync(async(req,res,next)=>{
     const authHeader = req.headers['authorization'];
+    console.log("req header is ",authHeader);
+    console.log("req header expected ",process.env.LEAD_UPDATE_SECRET);
+    
     if (!authHeader || authHeader !== `Bearer ${process.env.LEAD_UPDATE_SECRET}`) {
       return next(new AppError(" Unauthorized",401));   
     }
