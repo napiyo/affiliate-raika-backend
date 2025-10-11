@@ -76,9 +76,9 @@ export const addTransaction = catchAsync(async (req, res,next) => {
                   },
                 ],
                 { session }
-              );
+              )[0];
             }
-            console.log("customer is ",customer);
+            // console.log("customer is ",customer);
           const txnIdPoints = generateTxnId();
           const transPoints =  await TransactionModel.create(
             [
@@ -132,7 +132,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
     }
     await user.save({session});
     const txnId = generateTxnId();
-   console.log("user is ",user);
+  //  console.log("user is ",user);
    
    const trans =  await TransactionModel.create(
       [
