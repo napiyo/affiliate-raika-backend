@@ -63,21 +63,22 @@ export const addTransaction = catchAsync(async (req, res,next) => {
             await customer.save({session});
           }
           else
-          {
-             customer =  await UserModel.create(
-              [
-                {
-                  name: req.body.lead.name,
-                  email:req.body.lead.email,
-                  phone:req.body.lead.phone,
-                  password:"sdjfalsdjfeijlkasdjf",
-                  points:pointTobeAdded,
-                  lifetimePointsEarnings:pointTobeAdded
-                },
-              ],
-              { session }
-            );
-          }
+            {
+              customer =  await UserModel.create(
+                [
+                  {
+                    name: req.body.lead.name,
+                    email:req.body.lead.email,
+                    phone:req.body.lead.phone,
+                    password:"sdjfalsdjfeijlkasdjf",
+                    points:pointTobeAdded,
+                    lifetimePointsEarnings:pointTobeAdded
+                  },
+                ],
+                { session }
+              );
+            }
+            console.log("customer is ",customer);
           const txnIdPoints = generateTxnId();
           const transPoints =  await TransactionModel.create(
             [
@@ -93,7 +94,6 @@ export const addTransaction = catchAsync(async (req, res,next) => {
             ],
             { session }
           );
-   console.log("customer is ",customer);
 
   
       } 
