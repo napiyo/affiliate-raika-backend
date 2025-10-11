@@ -330,7 +330,7 @@ export const updateLead = catchAsync(async(req,res,next)=>{
     {
         req.body.type = TRANSACTIONS_ENUM.CREDIT;
         req.body.reference = leadId;
-        req.body.id = lead.user;
+        req.body.id = lead.user._id;
         req.body.lead = lead;
         // req.body.email = userInDb.email;
         // req.body.user = process.env.TELECRM_USER_ID;
