@@ -64,7 +64,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
           }
           else
             {
-              customer =  await UserModel.create(
+              const [newCustomer] =  await UserModel.create(
                 [
                   {
                     name: req.body.lead.name,
@@ -77,8 +77,9 @@ export const addTransaction = catchAsync(async (req, res,next) => {
                 ],
                 { session }
               );
+              customer = newCustomer;
             }
-            console.log("customer is ",customer);
+            // console.log("customer is ",customer);
           const txnIdPoints = generateTxnId();
           const transPoints =  await TransactionModel.create(
             [
