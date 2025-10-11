@@ -274,8 +274,6 @@ export const searchLeadbyAdmin = catchAsync(async (req, res, next) => {
 });
 export const checkIfTeleCRM = catchAsync(async(req,res,next)=>{
     const authHeader = req.headers['authorization'];
-    console.log("req header is ",authHeader);
-    console.log("req header expected ",process.env.LEAD_UPDATE_SECRET);
     
     if (!authHeader || authHeader !== `Bearer ${process.env.LEAD_UPDATE_SECRET}`) {
       return next(new AppError(" Unauthorized",401));   
@@ -322,7 +320,12 @@ export const updateLead = catchAsync(async(req,res,next)=>{
         lead.status == status;
         await lead.save();
     }
-    if(status == process.env.CREDIT_IF_STAGE_IS)
+    if(!amount || amount <1 )
+    {
+        res.status(200).json({success:true,data:"status updated"});
+        return;
+    }
+    if(status == process.env.CREDIT_IF_STAGE_IS && amount)
     {
         return next(new AppError("Lead is already completed, you can not add more amount"));
     }

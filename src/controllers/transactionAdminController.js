@@ -13,8 +13,8 @@ const generateTxnId = () => crypto.randomBytes(8).toString("hex");
 
 
 export const addTransaction = catchAsync(async (req, res,next) => {
-  const {id, amount, type, reference, comment} = req.body;
-  const {user :currentUser} = req.body;
+  const {id, amount, type, reference, comment} = req.body; // id = affiliate
+  const {user :currentUser} = req.body; // who initiated this transaction
   if( !id || !amount || !type || !reference || !comment)
   {
       return next(new AppError("All fileds email, amount, type, reference, comment are required",400));
@@ -27,7 +27,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
   if (!transactionTypesAllowed.includes(type)) {
     return next(new AppError("Invalid transaction type", 400));
   }
-  const user = await UserModel.findById(id);
+  const user = await UserModel.findById(id); // affilate
   if(!user)
     {
      return next(new AppError("User not found",404));
@@ -39,7 +39,6 @@ export const addTransaction = catchAsync(async (req, res,next) => {
   const session = await Mongoose.startSession();
   session.startTransaction();
   
- console.log("lead is ",req.body.lead);
  
   let commision = amount;
   try {
@@ -61,7 +60,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
           {
             customer.points = (customer.points||0)+pointTobeAdded;
             customer.lifetimePointsEarnings = (customer.lifetimePointsEarnings||0)+pointTobeAdded;
-            customer.save({session});
+            await customer.save({session});
           }
           else
           {
@@ -94,6 +93,8 @@ export const addTransaction = catchAsync(async (req, res,next) => {
             ],
             { session }
           );
+   console.log("customer is ",customer);
+
   
       } 
     switch (type) {
@@ -131,7 +132,8 @@ export const addTransaction = catchAsync(async (req, res,next) => {
     }
     await user.save({session});
     const txnId = generateTxnId();
-  
+   console.log("user is ",user);
+   
    const trans =  await TransactionModel.create(
       [
         {
@@ -153,7 +155,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
     sendTransactionEmail(user.email,type,amount);
     res.status(200).json({
       success:true,
-      data: { transaction: trans, user: user },
+      data: { transaction: trans[0], user: user },
     });
   } catch (err) {
     await session.abortTransaction();
