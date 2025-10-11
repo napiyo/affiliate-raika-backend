@@ -320,7 +320,7 @@ export const updateLead = catchAsync(async(req,res,next)=>{
         lead.status == status;
         await lead.save();
     }
-    if(!amount || amount <1 )
+    if(!amount || isNaN(amount) || amount < 1)
     {
         res.status(200).json({success:true,data:"status updated"});
         return;
@@ -344,7 +344,7 @@ export const updateLead = catchAsync(async(req,res,next)=>{
     }
    
     
-    res.status(400).json({success:false,data:"something went wrong"});
+    res.status(500).json({success:false,data:"something went wrong"});
 })
 
 export const addLeadbyLink = catchAsync(async(req,res,next)=>{
