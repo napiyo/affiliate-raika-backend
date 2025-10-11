@@ -76,14 +76,14 @@ export const addTransaction = catchAsync(async (req, res,next) => {
                   },
                 ],
                 { session }
-              )[0];
+              );
             }
-            // console.log("customer is ",customer);
+            console.log("customer is ",customer);
           const txnIdPoints = generateTxnId();
           const transPoints =  await TransactionModel.create(
             [
               {
-                user: customer._id,
+                user: customer[0]._id,
                 createdBy:currentUser._id,
                 type:TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT,
                 amount:pointTobeAdded,
