@@ -141,7 +141,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
           user: user._id,
           createdBy:currentUser._id,
           type,
-          amount,
+          amount:commision,
           reference,
           txnId,
           comment,
