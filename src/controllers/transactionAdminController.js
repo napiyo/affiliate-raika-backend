@@ -84,7 +84,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
           const transPoints =  await TransactionModel.create(
             [
               {
-                user: customer[0]._id,
+                user: customer._id,
                 createdBy:currentUser._id,
                 type:TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT,
                 amount:pointTobeAdded,
