@@ -161,6 +161,7 @@ export const searchLead = catchAsync(async (req, res, next) => {
                 email: email || "",
                 phone,
                 name: element.name,
+                user:element.user,
                 requirement: element.requirement,
                 source:element.source,
                 createdOn:element.createdAt,
