@@ -166,7 +166,7 @@ export const getEarningOverviewChart = catchAsync( async (req, res) => {
                     $filter: {
                       input: "$data",
                       as: "item",
-                      cond: { $eq: ["$$item.status", "CONVERTED"] },
+                      cond: { $eq: ["$$item.status", process.env.CREDIT_IF_STAGE_IS] },
                     },
                   },
                 },
