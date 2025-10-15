@@ -100,7 +100,15 @@ export const searchLead = catchAsync(async (req, res, next) => {
     // User filter
    
       filter.user = mongoose.Types.ObjectId(req.body.user._id);
-    
+   if(query.search && query.search != "undefined" && query.search.trim())
+   {
+        const term = query.search.trim();
+         filter.$or = [
+            { name: { $regex: term, $options: "i" } },
+            { email: { $regex: term, $options: "i" } },
+            { phone: { $regex: term, $options: "i" } },
+        ];
+   }
   
     // Date range
     if (query.created_on && query.created_on.from && query.created_on.to) {

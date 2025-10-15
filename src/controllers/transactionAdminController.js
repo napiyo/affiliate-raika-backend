@@ -90,7 +90,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
                 amount:pointTobeAdded,
                 reference,
                 txnId:txnIdPoints,
-                comment,
+                comment:"AUTO: Loyality points earned",
               },
             ],
             { session }
@@ -153,7 +153,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
 
     await session.commitTransaction();
     session.endSession();
-    sendTransactionEmail(user.email,type,amount);
+    sendTransactionEmail(user.email,type,commision);
     res.status(200).json({
       success:true,
       data: { transaction: trans[0], user: user },
