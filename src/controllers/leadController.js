@@ -332,6 +332,13 @@ export const updateLead = catchAsync(async(req,res,next)=>{
         lead.status = status;
         await lead.save();
     }
+    if(status == process.env.CREDIT_IF_STAGE_IS)
+    {
+         await UserModel.updateOne(
+        { _id: lead.user },
+        { $inc: { totalLeadsConv: 1 } }
+  );
+    }
     if(!amount || isNaN(amount) || amount < 1)
     {
         res.status(200).json({success:true,data:"status updated"});
