@@ -64,44 +64,55 @@ export const addTransaction = catchAsync(async (req, res,next) => {
           }
           else
             {
-              const [newCustomer] =  await UserModel.create(
-                [
-                  {
-                    name: req.body.lead.name,
-                    email:req.body.lead.email,
-                    phone:req.body.lead.phone,
-                    password:"sdjfalsdjfeijlkasdjf",
-                    points:pointTobeAdded,
-                    lifetimePointsEarnings:pointTobeAdded
-                  },
-                ],
-                { session }
-              );
-              customer = newCustomer;
+              try
+              {
+
+                const [newCustomer] =  await UserModel.create(
+                  [
+                    {
+                      name: req.body.lead.name,
+                      email:req.body.lead.email,
+                      phone:req.body.lead.phone,
+                      password:"sdjfalsdjfeijlkasdjf",
+                      points:pointTobeAdded,
+                      lifetimePointsEarnings:pointTobeAdded
+                    },
+                  ],
+                );
+                customer = newCustomer;
+              }
+              catch(e)
+              {
+                  console.log("no loyality points added to customer, as customer do not exist, and do not have email in laed, phone -",req.body.lead.phone);
+              }
             }
             // console.log("customer is ",customer);
           const txnIdPoints = generateTxnId();
-          const transPoints =  await TransactionModel.create(
-            [
-              {
-                user: customer._id,
-                createdBy:currentUser._id,
-                type:TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT,
-                amount:pointTobeAdded,
-                reference,
-                txnId:txnIdPoints,
-                comment:"AUTO: Loyality points earned",
-              },
-            ],
-            { session }
-          );
+          if(customer)
+          {
+
+            const transPoints =  await TransactionModel.create(
+              [
+                {
+                  user: customer._id,
+                  createdBy:currentUser._id,
+                  type:TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT,
+                  amount:pointTobeAdded,
+                  reference,
+                  txnId:txnIdPoints,
+                  comment:"AUTO: Loyality points earned",
+                },
+              ],
+              { session }
+            );
+          }
 
   
       } 
     switch (type) {
       case TRANSACTIONS_ENUM.CREDIT:
         user.balance = (user.balance || 0) + commision;
-        user.lifetimeEarnings = (user.lifeimeEarnings || 0)+ commision;
+        user.lifetimeEarnings = (user.lifetimeEarnings || 0)+ commision;
         break;
       case TRANSACTIONS_ENUM.DEBIT:
         if ((user.balance || 0) < commision) {

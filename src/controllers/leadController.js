@@ -3,7 +3,7 @@ import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/appError.js';
 import LeadsModel from '../models/leadsModel.js';
 import axios from 'axios';
-import { InProgressStatus, LeadSource, statusAllowed, TRANSACTIONS_ENUM } from '../utils/types.js';
+import { InProgressStatus, LeadSource, Role, statusAllowed, TRANSACTIONS_ENUM } from '../utils/types.js';
 import { sendEmailToAdmin } from '../utils/emailService.js';
 import Leads from '../models/leadsModel.js';
 import  mongoose  from 'mongoose';
@@ -98,8 +98,10 @@ export const searchLead = catchAsync(async (req, res, next) => {
     }
   
     // User filter
-   
-      filter.user = mongoose.Types.ObjectId(req.body.user._id);
+   if(req.body.user.role != Role.ADMIN)
+   {
+       filter.user = mongoose.Types.ObjectId(req.body.user._id);
+    }
    if(query.search && query.search != "undefined" && query.search.trim())
    {
         const term = query.search.trim();
@@ -320,7 +322,7 @@ export const updateLead = catchAsync(async(req,res,next)=>{
     {
         // status changes, debit credit amount
         // sendEmailToAdmin(amount,leadId,userInDb.email);
-        return next(new AppError("Lead is already completed, you can not add more amount"));
+        return next(new AppError("Lead is already completed, you can not add more amount",403));
         
     }
      
@@ -337,7 +339,7 @@ export const updateLead = catchAsync(async(req,res,next)=>{
     }
     if(status == process.env.CREDIT_IF_STAGE_IS && amount)
     {
-        return next(new AppError("Lead is already completed, you can not add more amount"));
+        return next(new AppError("Lead is already completed, you can not add more amount",403));
     }
     if( amount && amount > 0)
     {
