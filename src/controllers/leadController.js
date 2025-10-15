@@ -323,21 +323,15 @@ export const updateLead = catchAsync(async(req,res,next)=>{
         return next(new AppError("Lead is already completed, you can not add more amount"));
         
     }
-     console.log(lead);
-     console.log(amount,status,leadId);
      
      
     if(lead.status != status)
     {
-        lead.status == status;
-        console.log("savving ...");
-        
+        lead.status = status;
         await lead.save();
     }
     if(!amount || isNaN(amount) || amount < 1)
     {
-        console.log("return 200");
-        
         res.status(200).json({success:true,data:"status updated"});
         return;
     }
