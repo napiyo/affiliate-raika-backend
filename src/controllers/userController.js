@@ -44,7 +44,7 @@ export const getMyTransactions = catchAsync(async (req, res,next) => {
     }
     
     const query = {};
-    if(req.body.user.role === Role.ADMIN)
+    if(req.body.user.role === Role.ADMIN || req.body.user.role === Role.SALES)
     {
         if(id && id!=null && id != 'undefined'){ query.user = id;}
        
