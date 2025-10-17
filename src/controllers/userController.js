@@ -5,7 +5,7 @@ import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/appError.js';
 // import WalletModel from '../models/walletModel.js';
 import TransactionModel from '../models/transactionsModel.js';
-import { Role, TRANSACTIONS_TYPES } from '../utils/types.js';
+import { Role, TRANSACTIONS_TYPES, USER_ROLES } from '../utils/types.js';
 
 
 
@@ -301,7 +301,7 @@ export const updateUser = catchAsync(async (req, res, next) => {
     if(ifsc && user.ifsc != ifsc) user.ifsc = ifsc;
     if(bankName && user.bankName != bankName) user.bankName = bankName;
     if(name && user.name != bankName) user.name = name;
-    if(role && user.role != role && (role==Role.ADMIN || role == Role.USER)) user.role=role;
+    if(role && user.role != role && USER_ROLES.includes(role)) user.role=role;
 
     await user.save()
     res.status(200).json({
