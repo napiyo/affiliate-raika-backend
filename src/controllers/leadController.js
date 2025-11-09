@@ -336,11 +336,11 @@ export const updateLead = catchAsync(async(req,res,next)=>{
         { $inc: { totalLeadsConv: 1 } }
         // update transactions to success
         );
-        doneAllPaymentsForLead(leadId)
+       await doneAllPaymentsForLead(leadId)
     }
     if(status == "Lost")
     {
-        cancelAllPaymentsForLead(leadId)   
+        await cancelAllPaymentsForLead(leadId)   
     }
      if(lead.status != status)
     {
