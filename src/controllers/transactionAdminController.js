@@ -6,14 +6,14 @@ import catchAsync from "../utils/catchAsync.js";
 import crypto from "crypto";
 import { sendTransactionEmail } from "../utils/emailService.js";
 import  Mongoose  from "mongoose";
-import { Role, TRANSACTIONS_ENUM, TRANSACTIONS_TYPES, TRANSACTIONS_TYPES_FOR_SALES } from "../utils/types.js";
+import { Role, TRANSACTIONS_ENUM, TRANSACTIONS_STATUS, TRANSACTIONS_STATUS_ENUM, TRANSACTIONS_TYPES, TRANSACTIONS_TYPES_FOR_SALES } from "../utils/types.js";
 const {mongoose} = Mongoose;
 // Utility to generate unique transaction IDs
 const generateTxnId = () => crypto.randomBytes(8).toString("hex");
 
 
 export const addTransaction = catchAsync(async (req, res,next) => {
-  const {id, amount, type, reference, comment} = req.body; // id = affiliate
+  const {id, amount, type, reference, comment, status} = req.body; // id = affiliate
   const {user :currentUser} = req.body; // who initiated this transaction
   if( !id || !amount || !type || !reference || !comment)
   {
@@ -22,6 +22,10 @@ export const addTransaction = catchAsync(async (req, res,next) => {
   if(amount <1)
   {
     return next(new AppError("Invalid amount it must > 0",400));
+  }
+  if(!TRANSACTIONS_STATUS.includes(status))
+  {
+      status = TRANSACTIONS_STATUS_ENUM.PENDING;
   }
   const transactionTypesAllowed = currentUser?.role==Role.ADMIN?TRANSACTIONS_TYPES:currentUser?.role==Role.SALES?TRANSACTIONS_TYPES_FOR_SALES:[]
   if (!transactionTypesAllowed.includes(type)) {
@@ -100,6 +104,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
                   amount:pointTobeAdded,
                   reference,
                   txnId:txnIdPoints,
+                  status:status,
                   comment:"AUTO: Loyality points earned",
                 },
               ],
@@ -109,7 +114,8 @@ export const addTransaction = catchAsync(async (req, res,next) => {
 
   
       } 
-    switch (type) {
+    if(status == TRANSACTIONS_STATUS_ENUM.SUCCESS){
+      switch (type) {
       case TRANSACTIONS_ENUM.CREDIT:
         user.balance = (user.balance || 0) + commision;
         user.lifetimeEarnings = (user.lifetimeEarnings || 0)+ commision;
@@ -142,6 +148,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
       default:
         throw new AppError("invalid transaction type");
     }
+  }
     await user.save({session});
     const txnId = generateTxnId();
   //  console.log("user is ",user);
@@ -155,6 +162,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
           amount:commision,
           reference,
           txnId,
+          status:status,
           comment,
         },
       ],
@@ -176,6 +184,62 @@ export const addTransaction = catchAsync(async (req, res,next) => {
   }
 });
 
+
+export const cancelAllPaymentsForLead = async(leadId)=>
+{
+    await TransactionModel.updateMany(
+  { reference: leadId, status: TRANSACTIONS_STATUS_ENUM.PENDING },
+  { $set: { status: TRANSACTIONS_STATUS_ENUM.CANCLED } }
+);
+}
+
+export const doneAllPaymentsForLead = async(leadId)=>
+{
+
+  const transactionsTobeUpdated = TransactionModel.find({reference:leadId, status : TRANSACTIONS_STATUS_ENUM.PENDING});
+  
+  transactionsTobeUpdated.map(async(val,i)=>{
+    const user = await UserModel.findById(val.user);
+    switch (val.type) {
+      case TRANSACTIONS_ENUM.CREDIT:
+        user.balance = (user.balance || 0) + commision;
+        user.lifetimeEarnings = (user.lifetimeEarnings || 0)+ commision;
+        break;
+      case TRANSACTIONS_ENUM.DEBIT:
+        if ((user.balance || 0) < commision) {
+          throw new AppError("Insufficient funds", 400);
+        }
+        user.lifetimeEarnings = user.lifetimeEarnings - commision;
+        user.balance = user.balance - commision;
+        break;
+      case TRANSACTIONS_ENUM.WITHDRAWAL:
+        if ((user.balance || 0) < commision) {
+          throw new AppError("Insufficient funds", 400);
+        }
+        user.balance = user.balance - commision;
+        user.lifetimeWithdrawn = (user.lifetimeWithdrawn||0)+commision;
+        break;
+      case TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT:
+        user.points = (user.points||0)+commision;
+        user.lifetimePointsEarnings = (user.lifetimePointsEarnings||0)+commision;
+        break;
+      case TRANSACTIONS_ENUM.LOYALITY_POINT_DEBIT:
+        if ((user.points || 0) < commision) {
+          throw new AppError("Insufficient funds", 400);
+        }
+        user.points = user.points-commision;
+        user.lifetimePointsWithdrawn = user.lifetimePointsWithdrawn + commision;
+        break;
+      default:
+        throw new AppError("invalid transaction type");
+    }
+  })
+
+    await TransactionModel.updateMany(
+  { reference: leadId, status: TRANSACTIONS_STATUS_ENUM.PENDING },
+  { $set: { status: TRANSACTIONS_STATUS_ENUM.SUCCESS } }
+);
+}
 // Get user wallet details
 export const getWallet = catchAsync(async (req, res,next) => {
   const { email } = req.body;

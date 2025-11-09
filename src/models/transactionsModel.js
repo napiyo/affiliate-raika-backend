@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { TRANSACTIONS_TYPES } from "../utils/types.js";
+import { TRANSACTIONS_STATUS, TRANSACTIONS_STATUS_ENUM, TRANSACTIONS_TYPES } from "../utils/types.js";
 
 const transactionSchema = new mongoose.Schema(
   {
@@ -9,7 +9,8 @@ const transactionSchema = new mongoose.Schema(
     amount: { type: Number, required: true,set: (v) => Math.floor(v) },
     reference: { type: String },
     txnId: { type: String, required: true, unique: true },
-    comment:{type:String, required:true}
+    comment:{type:String, required:true},
+    status:{type:String, enum:TRANSACTIONS_STATUS,default:TRANSACTIONS_STATUS_ENUM.PENDING}
   },
   { timestamps: true }
 );

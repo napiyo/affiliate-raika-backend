@@ -3,11 +3,12 @@ import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/appError.js';
 import LeadsModel from '../models/leadsModel.js';
 import axios from 'axios';
-import { InProgressStatus, LeadSource, Role, statusAllowed, TRANSACTIONS_ENUM } from '../utils/types.js';
+import { InProgressStatus, LeadSource, Role, statusAllowed, TRANSACTIONS_ENUM, TRANSACTIONS_STATUS, TRANSACTIONS_STATUS_ENUM } from '../utils/types.js';
 import { sendEmailToAdmin } from '../utils/emailService.js';
 import Leads from '../models/leadsModel.js';
 import  mongoose  from 'mongoose';
 import User from '../models/userModel.js';
+import { cancelAllPaymentsForLead, doneAllPaymentsForLead } from './transactionAdminController.js';
 
 
 export const addLead = catchAsync(async (req, res, next) => {
@@ -327,17 +328,24 @@ export const updateLead = catchAsync(async(req,res,next)=>{
     }
      
      
-    if(lead.status != status)
-    {
-        lead.status = status;
-        await lead.save();
-    }
+   
     if(status == process.env.CREDIT_IF_STAGE_IS)
     {
          await UserModel.updateOne(
         { _id: lead.user },
         { $inc: { totalLeadsConv: 1 } }
-  );
+        // update transactions to success
+        );
+        doneAllPaymentsForLead(leadId)
+    }
+    if(status == "Lost")
+    {
+        cancelAllPaymentsForLead(leadId)   
+    }
+     if(lead.status != status)
+    {
+        lead.status = status;
+        await lead.save();
     }
     if(!amount || isNaN(amount) || amount < 1)
     {
