@@ -13,7 +13,8 @@ const generateTxnId = () => crypto.randomBytes(8).toString("hex");
 
 
 export const addTransaction = catchAsync(async (req, res,next) => {
-  const {id, amount, type, reference, comment, status} = req.body; // id = affiliate
+  const {id, amount, type, reference, comment} = req.body; // id = affiliate
+  let {status } = req.body;
   const {user :currentUser} = req.body; // who initiated this transaction
   if( !id || !amount || !type || !reference || !comment)
   {
@@ -233,6 +234,7 @@ export const doneAllPaymentsForLead = async(leadId)=>
       default:
         throw new AppError("invalid transaction type");
     }
+    await user.save();
   })
 
     await TransactionModel.updateMany(
