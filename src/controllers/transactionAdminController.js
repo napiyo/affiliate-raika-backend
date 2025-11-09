@@ -197,7 +197,7 @@ export const cancelAllPaymentsForLead = async(leadId)=>
 export const doneAllPaymentsForLead = async(leadId)=>
 {
 
-  const transactionsTobeUpdated = TransactionModel.find({reference:leadId, status : TRANSACTIONS_STATUS_ENUM.PENDING});
+  const transactionsTobeUpdated = await TransactionModel.find({reference:leadId, status : TRANSACTIONS_STATUS_ENUM.PENDING});
   
   transactionsTobeUpdated.map(async(val,i)=>{
     const user = await UserModel.findById(val.user);
