@@ -204,9 +204,6 @@ export const doneAllPaymentsForLead = async(leadId)=>
   
   transactionsTobeUpdated.map(async(val,i)=>{
     const user = await UserModel.findById(val.user);
-    console.log("204- user ",user);
-    console.log("205- val ",val);
-    
     switch (val.type) {
       case TRANSACTIONS_ENUM.CREDIT:
         user.balance = (user.balance || 0) + commision;
