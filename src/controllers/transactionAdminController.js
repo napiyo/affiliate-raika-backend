@@ -61,7 +61,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
           // add royalty points
           const pointTobeAdded = amount * 0.05;
           let customer = await UserModel.findOne({phone:req.body.lead.phone});
-          if(customer)
+          if(customer && status == TRANSACTIONS_STATUS_ENUM.SUCCESS)
           {
             customer.points = (customer.points||0)+pointTobeAdded;
             customer.lifetimePointsEarnings = (customer.lifetimePointsEarnings||0)+pointTobeAdded;
@@ -79,8 +79,8 @@ export const addTransaction = catchAsync(async (req, res,next) => {
                       email:req.body.lead.email,
                       phone:req.body.lead.phone,
                       password:"sdjfalsdjfeijlkasdjf",
-                      points:pointTobeAdded,
-                      lifetimePointsEarnings:pointTobeAdded
+                      points:status == TRANSACTIONS_STATUS_ENUM.SUCCESS?pointTobeAdded:0,
+                      lifetimePointsEarnings:TRANSACTIONS_STATUS_ENUM.SUCCESS?pointTobeAdded:0
                     },
                   ],
                 );
@@ -196,11 +196,17 @@ export const cancelAllPaymentsForLead = async(leadId)=>
 
 export const doneAllPaymentsForLead = async(leadId)=>
 {
+  const session = await Mongoose.startSession();
+  session.startTransaction();
+  try{
 
   const transactionsTobeUpdated = await TransactionModel.find({reference:leadId, status : TRANSACTIONS_STATUS_ENUM.PENDING});
   
   transactionsTobeUpdated.map(async(val,i)=>{
     const user = await UserModel.findById(val.user);
+    console.log("204- user ",user);
+    console.log("205- val ",val);
+    
     switch (val.type) {
       case TRANSACTIONS_ENUM.CREDIT:
         user.balance = (user.balance || 0) + commision;
@@ -234,13 +240,20 @@ export const doneAllPaymentsForLead = async(leadId)=>
       default:
         throw new AppError("invalid transaction type");
     }
-    await user.save();
+    await user.save({session});
   })
 
     await TransactionModel.updateMany(
   { reference: leadId, status: TRANSACTIONS_STATUS_ENUM.PENDING },
-  { $set: { status: TRANSACTIONS_STATUS_ENUM.SUCCESS } }
+  { $set: { status: TRANSACTIONS_STATUS_ENUM.SUCCESS } },{session}
 );
+  await session.commitTransaction();
+  session.endSession();  
+}
+  catch(e){
+    await session.abortTransaction();
+    session.endSession();
+  }
 }
 // Get user wallet details
 export const getWallet = catchAsync(async (req, res,next) => {
