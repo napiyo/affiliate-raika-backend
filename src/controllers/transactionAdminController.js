@@ -204,6 +204,7 @@ export const doneAllPaymentsForLead = async(leadId)=>
   
   transactionsTobeUpdated.map(async(val,i)=>{
     const user = await UserModel.findById(val.user);
+    const commision = val.amount
     switch (val.type) {
       case TRANSACTIONS_ENUM.CREDIT:
         user.balance = (user.balance || 0) + commision;
@@ -276,7 +277,7 @@ export const getWallet = catchAsync(async (req, res,next) => {
 });
 
 export const getTransactions = catchAsync(async (req, res,next) => {
-  const { id, page = 1, limit = 20 } = req.body;
+  const { id, page = 1, limit = 25 ,search} = req.body;
   const user = await UserModel.findById( id );
   if (!user) {
     return next(new AppError("User not found", 404));

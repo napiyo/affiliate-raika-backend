@@ -31,7 +31,7 @@ export const changePassword = catchAsync(async (req, res,next) => {
 });
 
 export const getMyTransactions = catchAsync(async (req, res,next) => {
-    const {limit=20,page=1,type,from,to,search,id} = req.body;
+    const {limit=25,page=1,type,from,to,search,id} = req.body;
 
     if(limit<1||page<1)
     {
