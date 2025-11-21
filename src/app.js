@@ -26,12 +26,23 @@ app.use(rateLimit({
 }));
 
 
+const allowedOrigins = [];
+
+if (process.env.DEV_MODE === "on") {
+  allowedOrigins.push(/http:\/\/localhost:\d+$/);
+}
+
+// Always allow your production frontend URL
+if (process.env.FRONT_END_BASE_URL) {
+  allowedOrigins.push(process.env.FRONT_END_BASE_URL);
+}
+
 app.use(
-    cors({
-      credentials: true, 
-      origin:process.env.FRONT_END_BASE_URL
-    })
-  );
+  cors({
+    credentials: true,
+    origin: allowedOrigins,
+  })
+);
 // Routes
 app.use('/auth', authRoutes);
 app.use('/users', protect, userRoutes);
