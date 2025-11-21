@@ -111,7 +111,6 @@ export const searchLead = catchAsync(async (req, res, next) => {
             { email: { $regex: term, $options: "i" } },
             { phone: { $regex: term, $options: "i" } },
             { leadId: { $regex: term, $options: "i" } },
-              { _id: term },
         ];
    }
   
