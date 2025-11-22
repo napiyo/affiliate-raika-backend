@@ -80,7 +80,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
                       phone:req.body.lead.phone,
                       password:"sdjfalsdjfeijlkasdjf",
                       points:status == TRANSACTIONS_STATUS_ENUM.SUCCESS?pointTobeAdded:0,
-                      lifetimePointsEarnings:TRANSACTIONS_STATUS_ENUM.SUCCESS?pointTobeAdded:0
+                      lifetimePointsEarnings:status==TRANSACTIONS_STATUS_ENUM.SUCCESS?pointTobeAdded:0
                     },
                   ],
                 );
