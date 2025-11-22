@@ -16,7 +16,6 @@ export const verifyToken = async (token) => {
 
 
 export const setCookie = (res, token) => {
-  const isDev = process.env.DEV_MODE === "on";
 
   res.cookie("jwt", token, {
     expires: new Date(
@@ -24,9 +23,9 @@ export const setCookie = (res, token) => {
         process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
-    secure: !isDev,              // secure only in production (HTTPS)
-    sameSite: isDev ? "None" : "Lax",
-    domain: isDev ? undefined : ".raikaphotography.com", 
+    secure: true,              
+    sameSite: "Lax",
+    domain:  ".raikaphotography.com", 
     path: "/",
   });
 };
@@ -35,9 +34,9 @@ export const clearCookie =(res,token)=>
     {
         res.clearCookie('jwt', {
             httpOnly: true,
-            secure: !isDev, 
-            sameSite: isDev ? "None" : "Lax",
-            domain: isDev ? undefined : ".raikaphotography.com", 
+            secure: true, 
+            sameSite: "Lax",
+            domain:  ".raikaphotography.com", 
             path: "/",
         });
     }

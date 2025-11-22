@@ -13,7 +13,7 @@ router.post("/mytrasaction",getMyTransactions);
 router.get("/wallet",getWallet);
 router.post('/', roleCheck(Role.ADMIN,Role.SALES),getAllUsers);
 router.get('/:id', roleCheck(Role.ADMIN,Role.SALES),getUserbyId);
-router.post('/userbyemail',roleCheck(Role.ADMIN), getUserbyEmail);
+router.post('/userbyemail',roleCheck(Role.ADMIN,Role.SALES), getUserbyEmail);
 router.post('/suspend',roleCheck(Role.ADMIN), suspend );
 router.post('/unsuspend',roleCheck(Role.ADMIN), unsuspend );
 router.post('/update',roleCheck(Role.ADMIN), updateUser );
