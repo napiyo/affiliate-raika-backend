@@ -26,7 +26,7 @@ export const addLead = catchAsync(async (req, res, next) => {
   
     const url = `https://next.telecrm.in/autoupdate/v2/enterprise/${process.env.ENTERPRISE_ID}/lead`;
     const data = {"fields":{name,phone,requirements, alternatephone,email,referrer_name:req.body.user.name,
-        referrer_email:req.body.user.email,
+        referrer_email_1:req.body.user.email,
         lead_source:LeadSource.manual
     }}
     const leadgen = await axios.post(url, data, { 
