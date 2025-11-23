@@ -14,9 +14,9 @@ router.get('/logout', logout);
 // router.put("/reset/:token",resetPassword);
 // router.post('/forgotpassword', forgotPassword);
 router.get('/me',protect, getMe);
-router.post('/auth/send-otp', sendOTP);
-router.post('/auth/verify-otp', verifyOTP);
-router.post('/auth/complete-profile', completeProfile);
+router.post('/send-otp', sendOTP);
+router.post('/verify-otp', verifyOTP);
+router.post('/complete-profile', completeProfile);
 
 
 
