@@ -108,7 +108,8 @@ export const verifyOTP = catchAsync(async (req, res, next) => {
         const isNewUser = user.name === 'akdsfjaskljfei';
 
         await user.save({ validateBeforeSave: false });
-
+        const token = signToken(user._id);
+        setCookie(res, token);
         res.status(200).json({
             success: true,
             data: {
