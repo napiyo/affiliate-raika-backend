@@ -302,9 +302,9 @@ export const checkIfTeleCRM = catchAsync(async(req,res,next)=>{
 export const updateLead = catchAsync(async(req,res,next)=>{
     const {amount,status,leadId,phone}  = req.body;
     
-    if( !leadId || !status )
+    if( !leadId || !status || !phone)
     {
-        return next(new AppError(" leadid, status are required",400));
+        return next(new AppError(" leadid, status,phone are required",400));
     }
     // if(token != process.env.LEAD_UPDATE_SECRET)
     // {

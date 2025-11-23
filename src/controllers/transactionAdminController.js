@@ -18,7 +18,7 @@ export const addLoyalityPoints = async (amount,phone,telecrmUser,leadId) => {
     }
     if(!amount || !phone || !telecrmUser || !leadId)
     {
-      throw new AppError("Amount or phone is not valid",403);
+      throw new AppError("Amount or phone is missing",403);
     }
     let amt = Math.floor(amount)*0.05
     if(amt <0) return
