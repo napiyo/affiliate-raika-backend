@@ -47,10 +47,6 @@ export const sendOtpWhatsApp = async (phone, otp) => {
                                 type: 'text',
                                 text: otp,
                             },
-                            {
-                                type: 'text',
-                                text: '10', // Expiry in minutes
-                            },
                         ],
                     },
                 ],
