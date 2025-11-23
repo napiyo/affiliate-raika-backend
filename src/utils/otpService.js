@@ -50,16 +50,15 @@ export const sendOtpWhatsApp = async (phone, otp) => {
                         ],
                     },
                     {
-                            type: 'button', // Add this component for the interactive button
-                            sub_type: 'otp', // Specify the sub-type for OTP
-                            index: '0', // Index of the button (usually 0 for the first/only button)
-                            parameters: [
-                                {
-                                    type: 'text',
-                                    text: otp, // **Crucial:** Pass the OTP value here again for the copy button
-                                },
-                            ],
-                },
+                    "type": "buttons",
+                    "buttons": [
+                        {
+                        "type": "otp",
+                        "otp_type": "copy_code",
+                        "text": "Copy Code"
+                        }
+                    ]
+                    }
                 ],
             },
         };
