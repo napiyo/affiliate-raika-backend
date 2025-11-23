@@ -2,7 +2,7 @@
 import axios from 'axios';
 import AppError from './appError.js';
 
-const WHATSAPP_API_URL = `https://graph.instagram.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+const WHATSAPP_API_URL = ` https://graph.facebook.com/v22.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages `
 const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_BUSINESS_ACCESS_TOKEN;
 
 /**
