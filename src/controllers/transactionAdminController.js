@@ -41,22 +41,32 @@ export const addTransaction = catchAsync(async (req, res,next) => {
   {
     return next(new AppError("User is not active",403));
   }
-  const session = await Mongoose.startSession();
-  session.startTransaction();
-  
+
  
   let commision = amount;
+   if(currentUser._id == process.env.TELECRM_USER_ID &&  type == TRANSACTIONS_ENUM.CREDIT)
+      {
+          if(user.role == Role.GOLDUSER)
+          {
+            commision = amount * 0.2;
+          }
+          else
+          {
+            commision = amount * 0.1;
+          }
+      }
+      commision = Math.floor(commision);
+      if(commision < 1)
+      {
+         res.status(200).json({
+          success:true})
+          return
+      }
+        const session = await Mongoose.startSession();
+  session.startTransaction();
+  
   try {
-    // if(currentUser._id == process.env.TELECRM_USER_ID &&  type == TRANSACTIONS_ENUM.CREDIT)
-    //   {
-    //       if(user.role == Role.GOLDUSER)
-    //       {
-    //         commision = amount * 0.2;
-    //       }
-    //       else
-    //       {
-    //         commision = amount * 0.1;
-    //       }
+   
   
     //       // add royalty points
     //       const pointTobeAdded = amount * 0.05;
@@ -115,7 +125,9 @@ export const addTransaction = catchAsync(async (req, res,next) => {
 
   
     //   } 
-    if(status == TRANSACTIONS_STATUS_ENUM.SUCCESS){
+    
+  
+    if(commision > 0&& status == TRANSACTIONS_STATUS_ENUM.SUCCESS){
       switch (type) {
       case TRANSACTIONS_ENUM.CREDIT:
         user.balance = (user.balance || 0) + commision;
@@ -149,8 +161,8 @@ export const addTransaction = catchAsync(async (req, res,next) => {
       default:
         throw new AppError("invalid transaction type");
     }
-  }
     await user.save({session});
+  }
     const txnId = generateTxnId();
   //  console.log("user is ",user);
    
