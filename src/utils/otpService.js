@@ -47,6 +47,14 @@ export const sendOtpWhatsApp = async (phone, otp) => {
                                 type: 'text',
                                 text: otp,
                             },
+                            {
+                            type: "button",
+                            sub_type: "copy_code",
+                            index: "0",
+                            parameters: [
+                            { type: "text", text: otp } // code to be copied
+                            ]
+                        }
                         ],
                     },
                 ],
