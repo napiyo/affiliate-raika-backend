@@ -340,3 +340,34 @@ export const resetPassword = catchAsync(async (req, res, next) => {
         data: "Password reset successful, you can now log in"
     });
 });
+
+
+export const verifyEmail = catchAsync(async (req, res,next) => {
+    const { token } = req.params;
+    if(!token)
+    {
+        return next(new AppError("token is required",400));
+    }
+    const user = await UserModel.findOne({
+      verificationToken: token,
+      verificationTokenExpires: { $gt: Date.now() },
+    }).select("+verificationToken +verificationTokenExpires");
+  
+    if (!user) {
+      return next(new AppError("Invalid or expired token",400))
+    }
+  
+    user.verifiedEmail = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    await user.save();
+    // const jwttoken = signToken(user._id);
+
+//    setCookie(res,jwttoken);
+    // Remove password from output
+    // user.password = undefined;
+    res.status(200).json({
+        success: true,
+        data: user,
+    });
+  });
