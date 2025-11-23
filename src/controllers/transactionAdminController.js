@@ -14,7 +14,7 @@ const generateTxnId = () => crypto.randomBytes(8).toString("hex");
 export const addLoyalityPoints = async (amount,phone,telecrmUser,leadId) => {
     if(telecrmUser._id != process.env.TELECRM_USER_ID)
     {
-      throw new AppError("invalid user, user is not telecrm, cant add loyalty")
+      throw new AppError("invalid user, user is not telecrm, cant add loyalty",403)
     }
     if(!amount || !phone || !telecrmUser || !leadId)
     {

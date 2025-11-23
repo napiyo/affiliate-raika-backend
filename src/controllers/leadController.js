@@ -360,16 +360,11 @@ export const updateLead = catchAsync(async(req,res,next)=>{
         
     }
      
-     
-   
-   
-   
-     
     if(status == process.env.CREDIT_IF_STAGE_IS && amount)
     {
         return next(new AppError("Lead is already completed, you can not add more amount",200));
     }
- await addLoyalityPoints(amount,phone,lead.user,leadId)
+ await addLoyalityPoints(amount,phone,req.body.user,leadId)
 
     // add loyaly points
   
