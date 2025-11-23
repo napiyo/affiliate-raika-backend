@@ -48,7 +48,7 @@ export const sendOTP = catchAsync(async (req, res, next) => {
                 phone,
                 otp,
                 otpExpiresIn,
-                name: 'akdsfjaskljfei', // Placeholder, will be updated during profile completion
+                name: process.env.NEW_USER_NAME, // Placeholder, will be updated during profile completion
             });
         }
 
@@ -104,8 +104,8 @@ export const verifyOTP = catchAsync(async (req, res, next) => {
         user.otp = undefined;
         user.otpExpiresIn = undefined;
 
-        // Check if user is new (name is still 'Temporary')
-        const isNewUser = user.name === 'akdsfjaskljfei';
+ 
+        const isNewUser = !user.name ||  user.name === process.env.NEW_USER_NAME;
 
         await user.save({ validateBeforeSave: false });
         if(!isNewUser)
@@ -159,7 +159,7 @@ export const completeProfile = catchAsync(async (req, res, next) => {
         }
 
         // Check if user is new
-        if (user.name !== 'akdsfjaskljfei') {
+        if (user.name && user.name !== process.env.NEW_USER_NAME || user.email) {
             return next(new AppError('User already has a completed profile', 400));
         }
 

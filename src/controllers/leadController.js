@@ -8,7 +8,7 @@ import { sendEmailToAdmin } from '../utils/emailService.js';
 import Leads from '../models/leadsModel.js';
 import  mongoose  from 'mongoose';
 import User from '../models/userModel.js';
-import { cancelAllPaymentsForLead, doneAllPaymentsForLead } from './transactionAdminController.js';
+import { addLoyalityPoints, cancelAllPaymentsForLead, doneAllPaymentsForLead } from './transactionAdminController.js';
 
 
 export const addLead = catchAsync(async (req, res, next) => {
@@ -300,7 +300,7 @@ export const checkIfTeleCRM = catchAsync(async(req,res,next)=>{
     next();
 });
 export const updateLead = catchAsync(async(req,res,next)=>{
-    const {amount,status,leadId}  = req.body;
+    const {amount,status,leadId,phone}  = req.body;
     
     if( !leadId || !status )
     {
@@ -312,38 +312,27 @@ export const updateLead = catchAsync(async(req,res,next)=>{
     // }
    const lead =  await LeadsModel.findOne(
         { leadId: leadId }); 
-    if(!lead)
-    {
-        res.status(201).json({success:true,data:"Lead is not availabe at our platform"});
-    // setting success so CRM we dont treat as failure of commission add
-        return;
-    }
-    // const userInDb = await UserModel.findById(lead.user);
-   
-    if(lead.status == process.env.CREDIT_IF_STAGE_IS)
-    {
-        // status changes, debit credit amount
-        // sendEmailToAdmin(amount,leadId,userInDb.email);
-        return next(new AppError("Lead is already completed, you can not add more amount",403));
-        
-    }
-     
-     
-   
     if(status == process.env.CREDIT_IF_STAGE_IS)
     {
-         await UserModel.updateOne(
-        { _id: lead.user },
-        { $inc: { totalLeadsConv: 1 } }
-        // update transactions to success
-        );
+        if(lead){
+
+            await UserModel.updateOne(
+                { _id: lead.user },
+                { $inc: { totalLeadsConv: 1 } }
+                // update transactions to success
+            );
+        }
        await doneAllPaymentsForLead(leadId)
     }
     if(status == "Lost")
     {
         await cancelAllPaymentsForLead(leadId)   
     }
-     if(lead.status != status)
+    if(!lead && !phone)
+    {
+        return next(new AppError("lead is not registered on our platform, need phone number to continue",403));
+    }
+      if(lead && lead.status != status)
     {
         lead.status = status;
         await lead.save();
@@ -353,16 +342,44 @@ export const updateLead = catchAsync(async(req,res,next)=>{
         res.status(200).json({success:true,data:"status updated"});
         return;
     }
+    // if(!lead)
+    // {
+    //     // update loayality points
+
+    //     res.status(201).json({success:true,data:"Lead is not availabe at our platform, added only loyality"});
+    // // setting success so CRM we dont treat as failure of commission add
+    //     return;
+    // }
+    // const userInDb = await UserModel.findById(lead.user);
+   
+    if( lead && lead.status == process.env.CREDIT_IF_STAGE_IS)
+    {
+        // status changes, debit credit amount
+        // sendEmailToAdmin(amount,leadId,userInDb.email);
+        return next(new AppError("Lead is already completed, you can not add more amount",200));
+        
+    }
+     
+     
+   
+   
+   
+     
     if(status == process.env.CREDIT_IF_STAGE_IS && amount)
     {
-        return next(new AppError("Lead is already completed, you can not add more amount",403));
+        return next(new AppError("Lead is already completed, you can not add more amount",200));
     }
+ await addLoyalityPoints(amount,phone,lead.user,leadId)
+
+    // add loyaly points
+  
     if( amount && amount > 0)
     {
         req.body.type = TRANSACTIONS_ENUM.CREDIT;
         req.body.reference = leadId;
         req.body.id = lead.user._id;
         req.body.lead = lead;
+        req.body.status = TRANSACTIONS_STATUS_ENUM.PENDING
         // req.body.email = userInDb.email;
         // req.body.user = process.env.TELECRM_USER_ID;
         req.body.comment = "AUTO: commission for lead"

@@ -11,7 +11,42 @@ const {mongoose} = Mongoose;
 // Utility to generate unique transaction IDs
 const generateTxnId = () => crypto.randomBytes(8).toString("hex");
 
+export const addLoyalityPoints = async (amount,phone,telecrmUser,leadId) => {
+    if(telecrmUser._id != process.env.TELECRM_USER_ID)
+    {
+      throw new AppError("invalid user, user is not telecrm, cant add loyalty")
+    }
+    if(!amount || !phone || !telecrmUser || !leadId)
+    {
+      throw new AppError("Amount or phone is not valid",403);
+    }
+    let amt = Math.floor(amount)*0.05
+    if(amt <0) return
+  
 
+      const user = await UserModel.findOne({phone});
+      if(!user)
+        {
+          user = UserModel.create({phone:phone,name:process.env.NEW_USER_NAME})
+        }
+         const txnId = generateTxnId();
+     const trans =  await TransactionModel.create(
+      [
+        {
+          user: user._id,
+          createdBy:telecrmUser._id,
+          type:TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT,
+          amount:amt,
+          reference:leadId,
+          txnId,
+          status:TRANSACTIONS_STATUS_ENUM.PENDING,
+          comment:"Loyalty Points",
+        },
+      ],
+    );
+
+     
+}
 export const addTransaction = catchAsync(async (req, res,next) => {
   const {id, amount, type, reference, comment} = req.body; // id = affiliate
   let {status } = req.body;
