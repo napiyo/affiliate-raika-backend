@@ -241,65 +241,80 @@ export const cancelAllPaymentsForLead = async(leadId)=>
 );
 }
 
-export const doneAllPaymentsForLead = async(leadId)=>
-{
+export const doneAllPaymentsForLead = async (leadId) => {
   const session = await Mongoose.startSession();
-  session.startTransaction();
-  try{
-
-  const transactionsTobeUpdated = await TransactionModel.find({reference:leadId, status : TRANSACTIONS_STATUS_ENUM.PENDING});
   
-  transactionsTobeUpdated.map(async(val,i)=>{
-    const user = await UserModel.findById(val.user);
-    const commision = val.amount
-    switch (val.type) {
-      case TRANSACTIONS_ENUM.CREDIT:
-        user.balance = (user.balance || 0) + commision;
-        user.lifetimeEarnings = (user.lifetimeEarnings || 0)+ commision;
-        break;
-      case TRANSACTIONS_ENUM.DEBIT:
-        if ((user.balance || 0) < commision) {
-          throw new AppError("Insufficient funds", 400);
-        }
-        user.lifetimeEarnings = user.lifetimeEarnings - commision;
-        user.balance = user.balance - commision;
-        break;
-      case TRANSACTIONS_ENUM.WITHDRAWAL:
-        if ((user.balance || 0) < commision) {
-          throw new AppError("Insufficient funds", 400);
-        }
-        user.balance = user.balance - commision;
-        user.lifetimeWithdrawn = (user.lifetimeWithdrawn||0)+commision;
-        break;
-      case TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT:
-        user.points = (user.points||0)+commision;
-        user.lifetimePointsEarnings = (user.lifetimePointsEarnings||0)+commision;
-        break;
-      case TRANSACTIONS_ENUM.LOYALITY_POINT_DEBIT:
-        if ((user.points || 0) < commision) {
-          throw new AppError("Insufficient funds", 400);
-        }
-        user.points = user.points-commision;
-        user.lifetimePointsWithdrawn = user.lifetimePointsWithdrawn + commision;
-        break;
-      default:
-        throw new AppError("invalid transaction type");
-    }
-    await user.save({session});
-  })
+  try {
+    await session.withTransaction(async () => {
 
-    await TransactionModel.updateMany(
-  { reference: leadId, status: TRANSACTIONS_STATUS_ENUM.PENDING },
-  { $set: { status: TRANSACTIONS_STATUS_ENUM.SUCCESS } },{session}
-);
-  await session.commitTransaction();
-  session.endSession();  
-}
-  catch(e){
-    await session.abortTransaction();
+      const transactionsToBeUpdated = await TransactionModel
+        .find({ reference: leadId, status: TRANSACTIONS_STATUS_ENUM.PENDING })
+        .session(session);
+
+      for (const val of transactionsToBeUpdated) {
+
+        const user = await UserModel.findById(val.user).session(session);
+        const commision = val.amount;
+
+        switch (val.type) {
+          case TRANSACTIONS_ENUM.CREDIT:
+            user.balance = (user.balance || 0) + commision;
+            user.lifetimeEarnings = (user.lifetimeEarnings || 0) + commision;
+            break;
+
+          case TRANSACTIONS_ENUM.DEBIT:
+            if ((user.balance || 0) < commision) {
+              throw new AppError("Insufficient funds", 400);
+            }
+            user.lifetimeEarnings -= commision;
+            user.balance -= commision;
+            break;
+
+          case TRANSACTIONS_ENUM.WITHDRAWAL:
+            if ((user.balance || 0) < commision) {
+              throw new AppError("Insufficient funds", 400);
+            }
+            user.balance -= commision;
+            user.lifetimeWithdrawn = (user.lifetimeWithdrawn || 0) + commision;
+            break;
+
+          case TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT:
+            user.points = (user.points || 0) + commision;
+            user.lifetimePointsEarnings =
+              (user.lifetimePointsEarnings || 0) + commision;
+            break;
+
+          case TRANSACTIONS_ENUM.LOYALITY_POINT_DEBIT:
+            if ((user.points || 0) < commision) {
+              throw new AppError("Insufficient funds", 400);
+            }
+            user.points -= commision;
+            user.lifetimePointsWithdrawn =
+              (user.lifetimePointsWithdrawn || 0) + commision;
+            break;
+
+          default:
+            throw new AppError("Invalid transaction type");
+        }
+
+        await user.save({ session });
+      }
+
+      await TransactionModel.updateMany(
+        { reference: leadId, status: TRANSACTIONS_STATUS_ENUM.PENDING },
+        { $set: { status: TRANSACTIONS_STATUS_ENUM.SUCCESS } },
+        { session }
+      );
+    });
+
+  } catch (e) {
+    console.error("Transaction failed:", e);
+    throw e;
+  } finally {
     session.endSession();
   }
-}
+};
+
 // Get user wallet details
 export const getWallet = catchAsync(async (req, res,next) => {
   const { email } = req.body;
