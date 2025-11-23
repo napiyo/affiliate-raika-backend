@@ -286,11 +286,9 @@ export const unsuspend = catchAsync(async (req, res, next) => {
 
 export const updateUser = catchAsync(async (req, res, next) => {
     const {email,name,role,bankName,ifsc,accountNumber,upiId,suspended} = req.body;
-    if(!email)
-    {
-        return next(new AppError("email is required",400));
-    }
-    const user = await UserModel.findOne({email});
+     const id =   req.params.id
+
+      const user = await UserModel.findById(id);
     if(!user)
     {
         return next(new AppError("No user found",404));
@@ -300,9 +298,9 @@ export const updateUser = catchAsync(async (req, res, next) => {
     if(accountNumber && user.accountNumber != accountNumber) user.accountNumber = accountNumber;
     if(ifsc && user.ifsc != ifsc) user.ifsc = ifsc;
     if(bankName && user.bankName != bankName) user.bankName = bankName;
-    if(name && user.name != bankName) user.name = name;
+    if(name && user.name != name) user.name = name;
     if(role && user.role != role && USER_ROLES.includes(role)) user.role=role;
-
+    if(email&&  user.email != email) user.email = email
     await user.save()
     res.status(200).json({
         success: true,

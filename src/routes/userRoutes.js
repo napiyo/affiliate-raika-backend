@@ -16,7 +16,7 @@ router.get('/:id', roleCheck(Role.ADMIN,Role.SALES),getUserbyId);
 router.post('/userbyemail',roleCheck(Role.ADMIN,Role.SALES), getUserbyEmail);
 router.post('/suspend',roleCheck(Role.ADMIN), suspend );
 router.post('/unsuspend',roleCheck(Role.ADMIN), unsuspend );
-router.post('/update',roleCheck(Role.ADMIN), updateUser );
+router.post('/update/:id',roleCheck(Role.ADMIN), updateUser );
 
 
 export default router;

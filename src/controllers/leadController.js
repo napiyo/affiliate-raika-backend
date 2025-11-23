@@ -27,6 +27,7 @@ export const addLead = catchAsync(async (req, res, next) => {
     const url = `https://next.telecrm.in/autoupdate/v2/enterprise/${process.env.ENTERPRISE_ID}/lead`;
     const data = {"fields":{name,phone,requirements, alternatephone,email,referrer_name:req.body.user.name,
         referrer_email_1:req.body.user.email,
+        referrer_phone:req.body.user.phone,
         lead_source:LeadSource.manual
     }}
     const leadgen = await axios.post(url, data, { 
@@ -314,6 +315,8 @@ export const updateLead = catchAsync(async(req,res,next)=>{
         { leadId: leadId }); 
     if(status == process.env.CREDIT_IF_STAGE_IS)
     {
+       
+       await doneAllPaymentsForLead(leadId)
         if(lead){
 
             await UserModel.updateOne(
@@ -322,7 +325,6 @@ export const updateLead = catchAsync(async(req,res,next)=>{
                 // update transactions to success
             );
         }
-       await doneAllPaymentsForLead(leadId)
     }
     if(status == "Lost")
     {
