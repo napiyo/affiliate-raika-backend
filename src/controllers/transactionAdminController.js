@@ -47,74 +47,74 @@ export const addTransaction = catchAsync(async (req, res,next) => {
  
   let commision = amount;
   try {
-    if(currentUser._id == process.env.TELECRM_USER_ID &&  type == TRANSACTIONS_ENUM.CREDIT)
-      {
-          if(user.role == Role.GOLDUSER)
-          {
-            commision = amount * 0.2;
-          }
-          else
-          {
-            commision = amount * 0.1;
-          }
+    // if(currentUser._id == process.env.TELECRM_USER_ID &&  type == TRANSACTIONS_ENUM.CREDIT)
+    //   {
+    //       if(user.role == Role.GOLDUSER)
+    //       {
+    //         commision = amount * 0.2;
+    //       }
+    //       else
+    //       {
+    //         commision = amount * 0.1;
+    //       }
   
-          // add royalty points
-          const pointTobeAdded = amount * 0.05;
-          let customer = await UserModel.findOne({phone:req.body.lead.phone});
-          if(customer && status == TRANSACTIONS_STATUS_ENUM.SUCCESS)
-          {
-            customer.points = (customer.points||0)+pointTobeAdded;
-            customer.lifetimePointsEarnings = (customer.lifetimePointsEarnings||0)+pointTobeAdded;
-            await customer.save({session});
-          }
-          else
-            {
-              try
-              {
+    //       // add royalty points
+    //       const pointTobeAdded = amount * 0.05;
+    //       let customer = await UserModel.findOne({phone:req.body.lead.phone});
+    //       if(customer && status == TRANSACTIONS_STATUS_ENUM.SUCCESS)
+    //       {
+    //         customer.points = (customer.points||0)+pointTobeAdded;
+    //         customer.lifetimePointsEarnings = (customer.lifetimePointsEarnings||0)+pointTobeAdded;
+    //         await customer.save({session});
+    //       }
+    //       else
+    //         {
+    //           try
+    //           {
 
-                const [newCustomer] =  await UserModel.create(
-                  [
-                    {
-                      name: req.body.lead.name,
-                      email:req.body.lead.email,
-                      phone:req.body.lead.phone,
-                      password:"sdjfalsdjfeijlkasdjf",
-                      points:status == TRANSACTIONS_STATUS_ENUM.SUCCESS?pointTobeAdded:0,
-                      lifetimePointsEarnings:status==TRANSACTIONS_STATUS_ENUM.SUCCESS?pointTobeAdded:0
-                    },
-                  ],
-                );
-                customer = newCustomer;
-              }
-              catch(e)
-              {
-                  console.log("no loyality points added to customer, as customer do not exist, and do not have email in laed, phone -",req.body.lead.phone);
-              }
-            }
-            // console.log("customer is ",customer);
-          const txnIdPoints = generateTxnId();
-          if(customer)
-          {
+    //             const [newCustomer] =  await UserModel.create(
+    //               [
+    //                 {
+    //                   name: req.body.lead.name,
+    //                   email:req.body.lead.email,
+    //                   phone:req.body.lead.phone,
+    //                   password:"sdjfalsdjfeijlkasdjf",
+    //                   points:status == TRANSACTIONS_STATUS_ENUM.SUCCESS?pointTobeAdded:0,
+    //                   lifetimePointsEarnings:status==TRANSACTIONS_STATUS_ENUM.SUCCESS?pointTobeAdded:0
+    //                 },
+    //               ],
+    //             );
+    //             customer = newCustomer;
+    //           }
+    //           catch(e)
+    //           {
+    //               console.log("no loyality points added to customer, as customer do not exist, and do not have email in laed, phone -",req.body.lead.phone);
+    //           }
+    //         }
+    //         // console.log("customer is ",customer);
+    //       const txnIdPoints = generateTxnId();
+    //       if(customer)
+    //       {
 
-            const transPoints =  await TransactionModel.create(
-              [
-                {
-                  user: customer._id,
-                  createdBy:currentUser._id,
-                  type:TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT,
-                  amount:pointTobeAdded,
-                  reference,
-                  txnId:txnIdPoints,
-                  status:status,
-                  comment:"AUTO: Loyality points earned",
-                },
-              ],
-              { session }
-            );
-          }
+    //         const transPoints =  await TransactionModel.create(
+    //           [
+    //             {
+    //               user: customer._id,
+    //               createdBy:currentUser._id,
+    //               type:TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT,
+    //               amount:pointTobeAdded,
+    //               reference,
+    //               txnId:txnIdPoints,
+    //               status:status,
+    //               comment:"AUTO: Loyality points earned",
+    //             },
+    //           ],
+    //           { session }
+    //         );
+    //       }
 
   
-      } 
+    //   } 
     if(status == TRANSACTIONS_STATUS_ENUM.SUCCESS){
       switch (type) {
       case TRANSACTIONS_ENUM.CREDIT:
