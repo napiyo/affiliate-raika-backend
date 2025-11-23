@@ -26,7 +26,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
   }
   if(!TRANSACTIONS_STATUS.includes(status))
   {
-      status = TRANSACTIONS_STATUS_ENUM.PENDING;
+      status = TRANSACTIONS_STATUS_ENUM.SUCCESS;
   }
   const transactionTypesAllowed = currentUser?.role==Role.ADMIN?TRANSACTIONS_TYPES:currentUser?.role==Role.SALES?TRANSACTIONS_TYPES_FOR_SALES:[]
   if (!transactionTypesAllowed.includes(type)) {
@@ -37,7 +37,7 @@ export const addTransaction = catchAsync(async (req, res,next) => {
     {
      return next(new AppError("User not found",404));
     } 
-  if(user.suspended || !user.verifiedEmail)
+  if(user.suspended )
   {
     return next(new AppError("User is not active",403));
   }

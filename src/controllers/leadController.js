@@ -170,7 +170,7 @@ export const searchLead = catchAsync(async (req, res, next) => {
                 source:element.source,
                 createdOn:element.createdAt,
                 status:element.status || "Lost",
-                id:element.id,
+                id:element.leadId,
             }
         })
         const totalResults = await Leads.countDocuments(filter) || 0;

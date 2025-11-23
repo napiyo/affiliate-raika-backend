@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { completeProfile, forgotPassword, getMe, login, logout, protect, sendOTP, verifyEmail, verifyOTP } from '../controllers/authController.js';
+import { completeProfile, getMe, logout, protect, sendOTP, verifyEmail, verifyOTP } from '../controllers/authController.js';
 
 
 const router = Router();

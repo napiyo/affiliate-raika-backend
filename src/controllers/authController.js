@@ -108,8 +108,11 @@ export const verifyOTP = catchAsync(async (req, res, next) => {
         const isNewUser = user.name === 'akdsfjaskljfei';
 
         await user.save({ validateBeforeSave: false });
-        const token = signToken(user._id);
-        setCookie(res, token);
+        if(!isNewUser)
+        {
+            const token = signToken(user._id);
+            setCookie(res, token);
+        }
         res.status(200).json({
             success: true,
             data: {
@@ -197,43 +200,7 @@ export const completeProfile = catchAsync(async (req, res, next) => {
     }
 });
 
-// Original email-based login (kept for reference)
-export const login = catchAsync(async (req, res, next) => {
-    const { email, password } = req.body;
 
-    if (!email || !password) {
-        return next(new AppError('Please provide email and password!', 400));
-    }
-
-    const user = await UserModel.findOne({ email }).select("+password");
-
-    if (!user || !(await user.comparePassword(password))) {
-        return next(new AppError('Incorrect email or password', 401));
-    }
-
-    if (user.suspended) {
-        return next(new AppError("Your account is not active", 403));
-    }
-
-    if (!user.verifiedEmail) {
-        const emailVerificationtoken = crypto.randomBytes(32).toString("hex") + user._id;
-        user.verificationToken = emailVerificationtoken;
-        user.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
-        const verifyUrl = `${process.env.FRONT_END_BASE_URL}/auth/verify?token=${emailVerificationtoken}`;
-        await user.save();
-        await sendVerificationEmail(email, verifyUrl);
-        return next(new AppError("User email is not verified, verification email is sent", 403));
-    }
-
-    user.password = undefined;
-    const token = signToken(user._id);
-    setCookie(res, token);
-
-    res.status(200).json({
-        success: true,
-        data: user,
-    });
-});
 
 export const logout = catchAsync(async (req, res, next) => {
     clearCookie(res, req.cookies.jwt);
@@ -279,68 +246,7 @@ export const getMe = catchAsync(async (req, res, next) => {
     });
 });
 
-export const forgotPassword = catchAsync(async (req, res, next) => {
-    const { email } = req.body;
 
-    if (!email) {
-        return next(new AppError("email is required", 400));
-    }
-
-    const user = await UserModel.findOne({ email }).select("+resetPasswordToken +resetPasswordExpires");
-
-    if (!user) {
-        return next(new AppError("user not found", 404));
-    }
-
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-
-    user.resetPasswordToken = hashedToken;
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
-    await user.save({ validateBeforeSave: false });
-
-    const resetURL = `${process.env.FRONT_END_BASE_URL}/auth/resetpassword?token=${resetToken}`;
-    await sendResetTokenEmail(email, resetURL);
-
-    res.status(200).json({
-        success: true,
-        data: "Reset password link sent to email"
-    });
-});
-
-export const resetPassword = catchAsync(async (req, res, next) => {
-    const { token } = req.params;
-    const { password } = req.body;
-
-    if (!token || !password) {
-        return next(new AppError("token and password are required to reset password", 400));
-    }
-
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
-    const user = await UserModel.findOne({
-        resetPasswordToken: hashedToken,
-        resetPasswordExpires: { $gt: Date.now() },
-    });
-
-    if (!user) {
-        return next(new AppError("Token expired or invalid token", 404));
-    }
-
-    user.password = password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    if (!user.verifiedEmail) {
-        user.verifiedEmail = true;
-    }
-
-    await user.save();
-
-    res.status(200).json({
-        success: true,
-        data: "Password reset successful, you can now log in"
-    });
-});
 
 
 export const verifyEmail = catchAsync(async (req, res,next) => {
