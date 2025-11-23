@@ -35,7 +35,7 @@ export const sendOtpWhatsApp = async (phone, otp) => {
             to: phoneWithCountryCode,
             type: 'template',
             template: {
-                name: 'otp_verification', // Template name in WhatsApp Business Account
+                name: 'affiliate_otp', // Template name in WhatsApp Business Account
                 language: {
                     code: 'en_US',
                 },
