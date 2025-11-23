@@ -24,7 +24,7 @@ export const addLoyalityPoints = async (amount,phone,telecrmUser,leadId) => {
     if(amt <0) return
   
 
-      const user = await UserModel.findOne({phone});
+      let user = await UserModel.findOne({phone});
       if(!user)
         {
           user = UserModel.create({phone:phone,name:process.env.NEW_USER_NAME})
