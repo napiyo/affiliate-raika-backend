@@ -1,11 +1,13 @@
+// authController.js
 import UserModel from '../models/userModel.js';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/appError.js';
 import jwt from 'jsonwebtoken';
 import { promisify } from 'util';
 import crypto from 'crypto';
-import { sendResetTokenEmail, sendVerificationEmail } from '../utils/emailService.js';
+import { sendResetTokenEmail } from '../utils/emailService.js';
 import Wallet from '../models/walletModel.js';
+import { sendOtpWhatsApp, verifyOtpLogic } from '../utils/otpService.js';
 const {verify, sign} = jwt;
 import mongoose from 'mongoose';
 import { clearCookie, setCookie } from '../utils/jwtUtils.js';
@@ -18,246 +20,323 @@ const signToken = (id) => {
     });
 };
 
-export const register = catchAsync(async (req, res, next) => {
-    const { name, email, password ,phone} = req.body;
+// Send OTP to phone number
+export const sendOTP = catchAsync(async (req, res, next) => {
+    const { phone } = req.body;
 
-    // Check if all required fields are provided
-    if (!name || !email || !password || !phone) {
-        return next(new AppError('Please provide name, email,phone and password!', 400));
+    // Validate phone number
+    if (!phone || phone.length !== 10) {
+        return next(new AppError('Please provide a valid 10-digit phone number', 400));
     }
 
-    // Check if user already exists
-    const existingUser = await UserModel.findOne({ email });
-    if (existingUser) {
-        return next(new AppError('User with this email already exists!, Try to login', 409));
-    }
-    const emailVerificationtoken = crypto.randomBytes(32).toString("hex")+email;
-    // const session = await mongoose.startSession();
-    // session.startTransaction();
-    try{
+    try {
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiresIn = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
-        // Create new user
-        const [newUser] = await UserModel.create([{ name, email, password,phone,
-            verificationToken: emailVerificationtoken,
-            verificationTokenExpires: Date.now() + 24 * 60 * 60 * 1000,
-        }]);
-        if(!newUser)
-        {
-            throw new AppError("coulnt create new account",500);
+        // Check if user exists
+        let user = await UserModel.findOne({ phone });
+
+        if (user) {
+            // Update OTP for existing user
+            user.otp = otp;
+            user.otpExpiresIn = otpExpiresIn;
+            await user.save({ validateBeforeSave: false });
+        } else {
+            // Create a temporary document with OTP (user not registered yet)
+            user = await UserModel.create({
+                phone,
+                otp,
+                otpExpiresIn,
+                name: 'akdsfjaskljfei', // Placeholder, will be updated during profile completion
+            });
         }
-        // const [userWallet] = await Wallet.create([{user:newUser._id}],{session});
-        // if(!userWallet)
-        // {
-        //     throw new AppError("user wallet creation failed",500);
-        // }
-        // await session.commitTransaction();
-        // session.endSession();
-        const verifyUrl = `${process.env.FRONT_END_BASE_URL}/auth/verify?token=${emailVerificationtoken}`;
-        sendVerificationEmail(email, verifyUrl);
-        res.status(201).json({
+
+        // Send OTP via WhatsApp
+        const whatsappResult = await sendOtpWhatsApp(phone, otp);
+
+        if (!whatsappResult.success) {
+            return next(new AppError('Failed to send OTP. Please try again.', 500));
+        }
+
+        res.status(200).json({
             success: true,
-            data: "verification email sent"
+            message: 'OTP sent successfully to your WhatsApp',
         });
-    }
-    catch(err)
-    {
-        // await session.abortTransaction();
-        // session.endSession();
+    } catch (err) {
         next(err);
     }
 });
 
+// Verify OTP
+export const verifyOTP = catchAsync(async (req, res, next) => {
+    const { phone, otp } = req.body;
+
+    // Validate inputs
+    if (!phone || !otp) {
+        return next(new AppError('Please provide phone number and OTP', 400));
+    }
+
+    if (otp.length !== 6) {
+        return next(new AppError('OTP must be 6 digits', 400));
+    }
+
+    try {
+        // Find user by phone with OTP and otpExpiresIn selected
+        const user = await UserModel.findOne({ phone })
+            .select('+otp +otpExpiresIn');
+
+        if (!user) {
+            return next(new AppError('User not found', 404));
+        }
+
+        // Check if OTP is expired
+        if (!user.otpExpiresIn || new Date() > user.otpExpiresIn) {
+            return next(new AppError('OTP has expired. Please request a new one.', 400));
+        }
+
+        // Verify OTP
+        if (user.otp !== otp) {
+            return next(new AppError('Invalid OTP', 400));
+        }
+
+        // Clear OTP
+        user.otp = undefined;
+        user.otpExpiresIn = undefined;
+
+        // Check if user is new (name is still 'Temporary')
+        const isNewUser = user.name === 'akdsfjaskljfei';
+
+        await user.save({ validateBeforeSave: false });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                isNewUser,
+                user: {
+                    _id: user._id,
+                    phone: user.phone,
+                    name: user.name,
+                },
+            },
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+function isEmail(text) {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(text);
+}
+// Complete profile for new users
+export const completeProfile = catchAsync(async (req, res, next) => {
+    const { phone, name , email} = req.body;
+
+    // Validate inputs
+    if (!phone || !name) {
+        return next(new AppError('Please provide phone number and name', 400));
+    }
+
+    if (name.trim().length < 2) {
+        return next(new AppError('Name must be at least 2 characters', 400));
+    }
+    if(email && !isEmail(text))
+    {
+        return next(new AppError('Invalid Email', 400));
+        
+    }
+
+    try {
+        // Find user by phone
+        const user = await UserModel.findOne({ phone });
+
+        if (!user) {
+            return next(new AppError('User not found', 404));
+        }
+
+        // Check if user is new
+        if (user.name !== 'akdsfjaskljfei') {
+            return next(new AppError('User already has a completed profile', 400));
+        }
+
+        // Update user profile
+        user.name = name.trim();
+        user.email = email
+        user.verificationToken = undefined;
+        user.verificationTokenExpires = undefined;
+
+        await user.save();
+
+        // Create wallet for new user
+        // try {
+        //     await Wallet.create({ user: user._id });
+        // } catch (walletErr) {
+        //     console.error('Wallet creation error:', walletErr);
+        //     // Don't fail the entire request if wallet creation fails
+        // }
+
+        // Generate JWT token
+        const token = signToken(user._id);
+        setCookie(res, token);
+
+        res.status(201).json({
+            success: true,
+            message: 'Account created successfully',
+            data: {
+                user: {
+                    _id: user._id,
+                    name: user.name,
+                    phone: user.phone,
+                    email: user.email,
+                },
+            },
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// Original email-based login (kept for reference)
 export const login = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
 
-    // Check if email and password are provided
     if (!email || !password) {
         return next(new AppError('Please provide email and password!', 400));
     }
 
-    // Find user by email
     const user = await UserModel.findOne({ email }).select("+password");
 
-    // Check if user exists and password is correct
     if (!user || !(await user.comparePassword(password))) {
         return next(new AppError('Incorrect email or password', 401));
     }
-    if(user.suspended )
-    {
-        return next(new AppError("You're account is not active",403));
+
+    if (user.suspended) {
+        return next(new AppError("Your account is not active", 403));
     }
-    if(!user.verifiedEmail)
-        {
-            const emailVerificationtoken = crypto.randomBytes(32).toString("hex")+user._id;
-            
-            user.verificationToken = emailVerificationtoken;
-            user.verificationTokenExpires= Date.now() + 24 * 60 * 60 * 1000;
-            const verifyUrl = `${process.env.FRONT_END_BASE_URL}/auth/verify?token=${emailVerificationtoken}`;
-            await user.save();
-            await sendVerificationEmail(email, verifyUrl);
-            return next( new AppError("User email is not verified, verification email is sent",403));
-        }
-            // Generate JWT token
+
+    if (!user.verifiedEmail) {
+        const emailVerificationtoken = crypto.randomBytes(32).toString("hex") + user._id;
+        user.verificationToken = emailVerificationtoken;
+        user.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
+        const verifyUrl = `${process.env.FRONT_END_BASE_URL}/auth/verify?token=${emailVerificationtoken}`;
+        await user.save();
+        await sendVerificationEmail(email, verifyUrl);
+        return next(new AppError("User email is not verified, verification email is sent", 403));
+    }
+
     user.password = undefined;
     const token = signToken(user._id);
-
-   setCookie(res,token);
-
-    // Remove password from output
-    // user.password = undefined;
+    setCookie(res, token);
 
     res.status(200).json({
         success: true,
         data: user,
     });
 });
+
 export const logout = catchAsync(async (req, res, next) => {
-        clearCookie(res, req.cookies.jwt);
-        res.status(200).json({success:true,message:"see you soon"});
+    clearCookie(res, req.cookies.jwt);
+    res.status(200).json({ success: true, message: "see you soon" });
 });
+
 export const protect = catchAsync(async (req, res, next) => {
     let token;
-    
-    // Check for token in cookie
+
     if (req.cookies?.jwt) {
         token = req.cookies.jwt;
     }
 
-    // Check if token is provided
     if (!token) {
         return next(new AppError('invalid-user: You are not logged in! Please log in to get access.', 400));
     }
 
-    // Verify token
     const decoded = await promisify(verify)(token, process.env.JWT_SECRET);
 
-    // Check if user still exists
     const currentUser = await UserModel.findById(decoded.id);
     if (!currentUser) {
         return next(new AppError('invalid-user: The user belonging to this token no longer exists.', 401));
     }
-    if(currentUser.suspended) 
-    {
-        return next(new AppError('invalid-user: Your account has be suspended, please contact Admin', 403));   
+
+    if (currentUser.suspended) {
+        return next(new AppError('invalid-user: Your account has been suspended, please contact Admin', 403));
     }
-    // Grant access to protected route
+
     req.body.user = currentUser;
-    
     next();
 });
 
 export const getMe = catchAsync(async (req, res, next) => {
+    const currentUser = req.body.user;
 
-    //    const {id} = req.query;
-       let currentUser = req.body.user;
+    if (!currentUser) {
+        return next(new AppError('invalid user search', 404));
+    }
 
-       
-    //    if(id && id != null && currentUser.role == Role.ADMIN)
-    //    {
-        
-    //     currentUser = await UserModel.findById(id);
-    //     // console.log(currentUser);
-        
-    //    }
-       if(!currentUser)
-       {
-        return next(new AppError('invalid user search',404));
-       }
-  
-    
-    
     res.status(200).json({
         success: true,
-        data: currentUser
-        
+        data: currentUser,
     });
 });
 
-export const verifyEmail = catchAsync(async (req, res,next) => {
-    const { token } = req.params;
-    if(!token)
-    {
-        return next(new AppError("token is required",400));
-    }
-    const user = await UserModel.findOne({
-      verificationToken: token,
-      verificationTokenExpires: { $gt: Date.now() },
-    }).select("+verificationToken +verificationTokenExpires");
-  
-    if (!user) {
-      return next(new AppError("Invalid or expired token",400))
-    }
-  
-    user.verifiedEmail = true;
-    user.verificationToken = undefined;
-    user.verificationTokenExpires = undefined;
-    await user.save();
-    const jwttoken = signToken(user._id);
-
-   setCookie(res,jwttoken);
-    // Remove password from output
-    user.password = undefined;
-    res.status(200).json({
-        success: true,
-        data: user,
-    });
-  });
-  
-  export const forgotPassword = catchAsync( async (req, res,next) => {
+export const forgotPassword = catchAsync(async (req, res, next) => {
     const { email } = req.body;
-    if(!email)
-    {
-        return next(new AppError("email is required",400));
+
+    if (!email) {
+        return next(new AppError("email is required", 400));
     }
+
     const user = await UserModel.findOne({ email }).select("+resetPasswordToken +resetPasswordExpires");
+
     if (!user) {
-      return next(new AppError("user not found",404));
+        return next(new AppError("user not found", 404));
     }
-  
-    // Generate reset token
+
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-  
+
     user.resetPasswordToken = hashedToken;
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 min expiry
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
     await user.save({ validateBeforeSave: false });
-  
-    // Reset URL
+
     const resetURL = `${process.env.FRONT_END_BASE_URL}/auth/resetpassword?token=${resetToken}`;
-    await sendResetTokenEmail(email,resetURL);
+    await sendResetTokenEmail(email, resetURL);
+
     res.status(200).json({
         success: true,
-        data:"Reset password link sent to email"
-    })
+        data: "Reset password link sent to email"
+    });
 });
-export const resetPassword = catchAsync(async (req, res,next) => {
+
+export const resetPassword = catchAsync(async (req, res, next) => {
     const { token } = req.params;
     const { password } = req.body;
-    if(!token || !password)
-    {
-        return next(new AppError("token and password are required to rest password",400));
+
+    if (!token || !password) {
+        return next(new AppError("token and password are required to reset password", 400));
     }
+
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-  
+
     const user = await UserModel.findOne({
-      resetPasswordToken: hashedToken,
-      resetPasswordExpires: { $gt: Date.now() },
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: { $gt: Date.now() },
     });
-  
+
     if (!user) {
-      return next(new AppError("Token expired or invalid token",404));
+        return next(new AppError("Token expired or invalid token", 404));
     }
-  
-    user.password = password; 
+
+    user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
-    if(!user.verifiedEmail)
-    {
+    if (!user.verifiedEmail) {
         user.verifiedEmail = true;
     }
-    await user.save();
-  
-    res.status(200).json({success:true, data: "Password reset successful, you can now log in" });
-  });
 
-  
+    await user.save();
+
+    res.status(200).json({
+        success: true,
+        data: "Password reset successful, you can now log in"
+    });
+});

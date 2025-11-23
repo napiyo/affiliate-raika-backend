@@ -15,15 +15,14 @@ const userSchema = new Schema({
     },
     email: {
         type: String,
-        required: true,
         unique: true,
         match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address'],
     },
-    password: {
-        type: String,
-        required: true,
-        select:false
-    },
+    // password: {
+    //     type: String,
+    //     required: true,
+    //     select:false
+    // },
     role: {
         type: String,
         enum: USER_ROLES,
@@ -51,21 +50,23 @@ const userSchema = new Schema({
     suspended: { type: Boolean, default: false },
     verificationToken: {type: String, select:false},
     verificationTokenExpires: {type:Date, select:false},
-    resetPasswordToken: {type:String, select:false},
-    resetPasswordExpires: {type:Date, select:false}
+    otp: {type:String, select:false},
+    otpExpiresIn: {type:Date, select:false}
+    // resetPasswordToken: {type:String, select:false},
+    // resetPasswordExpires: {type:Date, select:false}
 }, { timestamps: true });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
-    if (!this.isModified('password')) return next();
-    this.password = await hash(this.password, 12);
-    next();
-});
+// userSchema.pre('save', async function(next) {
+//     if (!this.isModified('password')) return next();
+//     this.password = await hash(this.password, 12);
+//     next();
+// });
 
 // Method to compare password
-userSchema.methods.comparePassword = async function(candidatePassword) {
-    return await compare(candidatePassword, this.password);
-};
+// userSchema.methods.comparePassword = async function(candidatePassword) {
+//     return await compare(candidatePassword, this.password);
+// };
 
 const User = model('User', userSchema);
 
