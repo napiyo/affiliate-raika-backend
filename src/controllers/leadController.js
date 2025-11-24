@@ -45,7 +45,7 @@ export const addLead = catchAsync(async (req, res, next) => {
       alternatephone,
       email,
       referrer_name: req.body.user.name,
-      referrer_email_1: req.body.user.email,
+      referrer_email_1: req.body.user.email ,
       referrer_phone: req.body.user.phone,
       lead_source: LeadSource.manual,
     },
@@ -390,31 +390,35 @@ export const updateLead = catchAsync(async (req, res, next) => {
   }
 });
 export const addLeadbyLink = catchAsync(async (req, res, next) => {
-  const { email, phone, name, alternatephone, requirement } = req.body;
+  const { email, phone, name, alternatephone, requirements } = req.body;
   const { token } = req.params;
-  if (!name || !phone || !requirement) {
+  if (!name || !phone || !requirements) {
     return next(
       new AppError("name, phone, and requirement are required fields", 400)
     );
   }
 
   const user = await UserModel.findOne({ referralToken: token });
-  if (!user || user.suspended) {
-    return next(new AppError("referral token is not valid", 403));
-  }
+  // if (!user || user.suspended) {
+  //   return next(new AppError("referral token is not valid", 403));
+  // }
   const url = `https://next.telecrm.in/autoupdate/v2/enterprise/${process.env.ENTERPRISE_ID}/lead`;
-
+  const data = {
+      fields: {
+        name,
+        phone,
+        requirements,
+        alternatephone,
+        email,
+        referrer_name:  user.name,
+        referrer_email_1: user.email,
+        referrer_phone: user.phone,
+        lead_source: LeadSource.link,
+      },
+    };
   const leadgen = await axios.post(
     url,
-    {
-      name,
-      phone,
-      requirement,
-      alternatephone,
-      email,
-      referrer: user.email,
-      leadsource: "affiliate-link",
-    },
+    data,
     {
       headers: {
         Authorization: `Bearer ${process.env.TELECRM_TOKEN}`,
@@ -422,12 +426,20 @@ export const addLeadbyLink = catchAsync(async (req, res, next) => {
     }
   );
 
-  await LeadsModel.create({
-    user: user._id,
-    source: "affiliate-link",
+ await LeadsModel.create({
+    user: user?._id,
     leadId: leadgen.data.lead_id,
+    name,
+    phone,
+    email,
+    requirement: requirements,
+    alterPhone: alternatephone,
+    source:LeadSource.link
   });
-  user.totalLeads = user.totalLeads + 1;
-  await user.save();
+  if(user)
+  {
+    user.totalLeads = user.totalLeads + 1;
+    await user.save();
+  }
   res.status(201).json({ success: true, data: "Lead added" });
 });
