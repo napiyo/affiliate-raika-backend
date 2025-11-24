@@ -5,7 +5,7 @@ import AppError from '../utils/appError.js';
 import jwt from 'jsonwebtoken';
 import { promisify } from 'util';
 import crypto from 'crypto';
-import { sendResetTokenEmail } from '../utils/emailService.js';
+import { sendResetTokenEmail, sendVerificationEmail } from '../utils/emailService.js';
 import Wallet from '../models/walletModel.js';
 import { sendOtpWhatsApp, verifyOtpLogic } from '../utils/otpService.js';
 const {verify, sign} = jwt;
@@ -144,8 +144,9 @@ export const completeProfile = catchAsync(async (req, res, next) => {
     if (name.trim().length < 2) {
         return next(new AppError('Name must be at least 2 characters', 400));
     }
-    if(email && !isEmail(text))
+    if(email && !isEmail(email))
     {
+        // sendVerificationEmail()
         return next(new AppError('Invalid Email', 400));
         
     }

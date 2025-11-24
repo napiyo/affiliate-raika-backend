@@ -16,13 +16,14 @@ import cors from 'cors';
 const app = express();
 
 // Middleware
+app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cookieParser());   
 app.use(json());
 app.use(morgan('dev'));
 app.use(rateLimit({
-    windowMs:  1000, // 15 minutes
-    max: 100 // limit each IP to 100 requests per windowMs
+    windowMs:  1000, 
+    max: 100
 }));
 
 

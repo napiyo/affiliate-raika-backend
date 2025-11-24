@@ -307,10 +307,6 @@ export const updateLead = catchAsync(async(req,res,next)=>{
     {
         return next(new AppError(" leadid, status,phone are required",400));
     }
-    // if(token != process.env.LEAD_UPDATE_SECRET)
-    // {
-    //     return next(new AppError("token is not valid",403));
-    // }
    const lead =  await LeadsModel.findOne(
         { leadId: leadId }); 
     if(status == process.env.CREDIT_IF_STAGE_IS)
@@ -322,7 +318,6 @@ export const updateLead = catchAsync(async(req,res,next)=>{
             await UserModel.updateOne(
                 { _id: lead.user },
                 { $inc: { totalLeadsConv: 1 } }
-                // update transactions to success
             );
         }
     }
@@ -344,20 +339,8 @@ export const updateLead = catchAsync(async(req,res,next)=>{
         res.status(200).json({success:true,data:"status updated"});
         return;
     }
-    // if(!lead)
-    // {
-    //     // update loayality points
-
-    //     res.status(201).json({success:true,data:"Lead is not availabe at our platform, added only loyality"});
-    // // setting success so CRM we dont treat as failure of commission add
-    //     return;
-    // }
-    // const userInDb = await UserModel.findById(lead.user);
-   
     if( lead && lead.status == process.env.CREDIT_IF_STAGE_IS)
     {
-        // status changes, debit credit amount
-        // sendEmailToAdmin(amount,leadId,userInDb.email);
         return next(new AppError("Lead is already completed, you can not add more amount",200));
         
     }
@@ -380,8 +363,6 @@ export const updateLead = catchAsync(async(req,res,next)=>{
         // req.body.email = userInDb.email;
         // req.body.user = process.env.TELECRM_USER_ID;
         req.body.comment = "AUTO: commission for lead"
-
-        
        return next();
     }
    

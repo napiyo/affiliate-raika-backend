@@ -6,10 +6,7 @@ const {connect} = mongoose;
 
 const PORT = process.env.PORT || 3002;
 
-connect(process.env.DATABASE, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
+connect(process.env.DATABASE)
 .then(() => {
     console.log('Database connected successfully');
 })
