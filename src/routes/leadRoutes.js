@@ -13,7 +13,7 @@ router.post('/add',protect, addLead);
 // router.get('/:leadId',protect, getLeadbyId);
 router.post('/search',protect,searchLead);
 router.post('/admin/search',protect,roleCheck(Role.ADMIN), searchLeadbyAdmin);
-router.post('/update/',checkIfTeleCRM,updateLead,addTransaction); // invalid, made this get, so user dont need to pass body, for simplicity
+router.post('/update/',checkIfTeleCRM,updateLead); // invalid, made this get, so user dont need to pass body, for simplicity
 router.post('/external/:token',addLeadbyLink);
 
 

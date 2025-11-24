@@ -335,7 +335,7 @@ export const updateLead = catchAsync(async (req, res, next) => {
       }
 
       if (lead) {
-        if (!(lead.status === process.env.CREDIT_IF_STAGE_IS || lead.status === "Lost")) {
+        if (lead.status !== process.env.CREDIT_IF_STAGE_IS && lead.status !== "Lost") {
           if (lead.status !== status) {
             lead.status = status;
             await lead.save({ session });
