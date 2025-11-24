@@ -4,9 +4,6 @@ import AppError from "../utils/appError.js";
 import LeadsModel from "../models/leadsModel.js";
 import TransactionModel from "../models/transactionsModel.js";
 import axios from "axios";
-
-import Mongoose from "mongoose";
-const { mongoose } = Mongoose;
 import {
   InProgressStatus,
   LeadSource,
