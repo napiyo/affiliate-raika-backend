@@ -20,6 +20,7 @@ import {
   addLoyalityPoints,
   cancelAllPaymentsForLead,
   doneAllPaymentsForLead,
+  generateTxnId,
 } from "./transactionAdminController.js";
 
 export const addLead = catchAsync(async (req, res, next) => {
@@ -355,7 +356,7 @@ export const updateLead = catchAsync(async (req, res, next) => {
               commission = commission * 0.1;
             }
             commission = Math.floor(commission);
-            const txnId = generateTxnId();
+            const txnId = generateTxnId()
             if(affiliate && !affiliate.suspended )
             {
 

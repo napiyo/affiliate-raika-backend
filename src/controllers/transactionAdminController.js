@@ -16,7 +16,7 @@ import {
 } from "../utils/types.js";
 const { mongoose } = Mongoose;
 // Utility to generate unique transaction IDs
-const generateTxnId = () => crypto.randomBytes(8).toString("hex");
+export const generateTxnId = () => crypto.randomBytes(8).toString("hex");
 
 export const addLoyalityPoints = async (amount, phone, telecrmUser, leadId, session) => {
   if (!telecrmUser || !telecrmUser._id) {
