@@ -3,7 +3,7 @@ import Transaction from "../models/transactionsModel.js";
 import Lead from "../models/leadsModel.js";
 import mongoose from "mongoose";
 import catchAsync from "../utils/catchAsync.js";
-import { Role } from "../utils/types.js";
+import { Role, TRANSACTIONS_ENUM, TRANSACTIONS_STATUS, TRANSACTIONS_STATUS_ENUM } from "../utils/types.js";
 import User from "../models/userModel.js";
 
 export const getEarningOverviewChart = catchAsync( async (req, res) => {
@@ -18,7 +18,8 @@ export const getEarningOverviewChart = catchAsync( async (req, res) => {
     // --- Build match query ---
     let matchQuery = {
       createdAt: { $gte: startDate, $lte: today },
-      type: { $in: ["CREDIT", "LOYALITY_POINTS_CREDIT"] },
+      type: { $in: [TRANSACTIONS_ENUM.CREDIT,TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT] },
+      status:TRANSACTIONS_STATUS_ENUM.SUCCESS
     };
 
     if (loggedInUser.role === "admin") {
