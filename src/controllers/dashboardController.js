@@ -61,7 +61,7 @@ export const getEarningOverviewChart = catchAsync( async (req, res) => {
                   $filter: {
                     input: "$data",
                     as: "item",
-                    cond: { $eq: ["$$item.type", "CREDIT"] },
+                    cond: { $eq: ["$$item.type", TRANSACTIONS_ENUM.CREDIT] },
                   },
                 },
               },
@@ -75,7 +75,7 @@ export const getEarningOverviewChart = catchAsync( async (req, res) => {
                   $filter: {
                     input: "$data",
                     as: "item",
-                    cond: { $eq: ["$$item.type", "LOYALITY_POINTS_CREDIT"] },
+                    cond: { $eq: ["$$item.type", TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT] },
                   },
                 },
               },
