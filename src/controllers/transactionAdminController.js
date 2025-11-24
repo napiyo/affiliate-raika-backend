@@ -5,224 +5,170 @@ import AppError from "../utils/appError.js";
 import catchAsync from "../utils/catchAsync.js";
 import crypto from "crypto";
 import { sendTransactionEmail } from "../utils/emailService.js";
-import  Mongoose  from "mongoose";
-import { Role, TRANSACTIONS_ENUM, TRANSACTIONS_STATUS, TRANSACTIONS_STATUS_ENUM, TRANSACTIONS_TYPES, TRANSACTIONS_TYPES_FOR_SALES } from "../utils/types.js";
-const {mongoose} = Mongoose;
+import Mongoose from "mongoose";
+import {
+  Role,
+  TRANSACTIONS_ENUM,
+  TRANSACTIONS_STATUS,
+  TRANSACTIONS_STATUS_ENUM,
+  TRANSACTIONS_TYPES,
+  TRANSACTIONS_TYPES_FOR_SALES,
+} from "../utils/types.js";
+const { mongoose } = Mongoose;
 // Utility to generate unique transaction IDs
 const generateTxnId = () => crypto.randomBytes(8).toString("hex");
 
-export const addLoyalityPoints = async (amount,phone,telecrmUser,leadId) => {
-    if(telecrmUser._id != process.env.TELECRM_USER_ID)
-    {
-      throw new AppError("invalid user, user is not telecrm, cant add loyalty",403)
-    }
-    if(!amount || !phone || !telecrmUser || !leadId)
-    {
-      throw new AppError("Amount or phone is missing",403);
-    }
-    let amt = Math.floor(amount)*0.05
-    if(amt <0) return
-  
+export const addLoyalityPoints = async (amount, phone, telecrmUser, leadId, session) => {
+  if (!telecrmUser || !telecrmUser._id) {
+    throw new AppError("invalid telecrm user", 403);
+  }
+  if (telecrmUser._id.toString() !== String(process.env.TELECRM_USER_ID)) {
+    throw new AppError("invalid user, user is not telecrm, can't add loyalty", 403);
+  }
 
-      let user = await UserModel.findOne({phone});
-      if(!user)
-        {
-          user = await UserModel.create({phone:phone,name:process.env.NEW_USER_NAME})
-        }
-         const txnId = generateTxnId();
-     const trans =  await TransactionModel.create(
-      [
-        {
-          user: user._id,
-          createdBy:telecrmUser._id,
-          type:TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT,
-          amount:amt,
-          reference:leadId,
-          txnId,
-          status:TRANSACTIONS_STATUS_ENUM.PENDING,
-          comment:"Loyalty Points",
-        },
-      ],
+  if (amount === undefined || amount === null || !phone || !leadId) {
+    throw new AppError("Amount or phone or leadId is missing", 403);
+  }
+
+  // compute loyalty as floor(amount * 0.05)
+  const amt = Math.floor(Number(amount) * 0.05);
+  if (amt <= 0) return;
+
+  // ensure phone is string
+  const phoneStr = String(phone);
+  let user = await UserModel.findOne({ phone: phoneStr }).session(session);
+
+  if (!user) {
+    // create single document and return the created doc (do NOT destructure)
+    user = await UserModel.create([{ phone: phoneStr, name: process.env.NEW_USER_NAME }], { session });
+    // create([...], { session }) returns an array of docs
+    if (Array.isArray(user)) user = user[0];
+  }
+
+  const txnId = generateTxnId();
+  await TransactionModel.create(
+    [
+      {
+        user: user._id,
+        createdBy: telecrmUser._id,
+        type: TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT,
+        amount: amt,
+        reference: leadId,
+        txnId,
+        status: TRANSACTIONS_STATUS_ENUM.PENDING,
+        comment: "Loyalty Points",
+      },
+    ],
+    { session }
+  );
+};
+export const addTransaction = catchAsync(async (req, res, next) => {
+  const { id, amount, type, reference, comment } = req.body; // id = affiliate
+  let { status } = req.body;
+  const { user: currentUser } = req.body; // who initiated this transaction
+  if (!id || !amount || !type || !reference || !comment) {
+    return next(
+      new AppError(
+        "All fileds email, amount, type, reference, comment are required",
+        400
+      )
     );
-
-     
-}
-export const addTransaction = catchAsync(async (req, res,next) => {
-  const {id, amount, type, reference, comment} = req.body; // id = affiliate
-  let {status } = req.body;
-  const {user :currentUser} = req.body; // who initiated this transaction
-  if( !id || !amount || !type || !reference || !comment)
-  {
-      return next(new AppError("All fileds email, amount, type, reference, comment are required",400));
   }
-  if(amount <1)
-  {
-    return next(new AppError("Invalid amount it must > 0",400));
+  if (amount < 1) {
+    return next(new AppError("Invalid amount it must > 0", 400));
   }
-  if(!TRANSACTIONS_STATUS.includes(status))
-  {
-      status = TRANSACTIONS_STATUS_ENUM.SUCCESS;
+  if (!TRANSACTIONS_STATUS.includes(status)) {
+    status = TRANSACTIONS_STATUS_ENUM.SUCCESS;
   }
-  const transactionTypesAllowed = currentUser?.role==Role.ADMIN?TRANSACTIONS_TYPES:currentUser?.role==Role.SALES?TRANSACTIONS_TYPES_FOR_SALES:[]
+  const transactionTypesAllowed =
+    currentUser?.role == Role.ADMIN
+      ? TRANSACTIONS_TYPES
+      : currentUser?.role == Role.SALES
+      ? TRANSACTIONS_TYPES_FOR_SALES
+      : [];
   if (!transactionTypesAllowed.includes(type)) {
     return next(new AppError("Invalid transaction type", 400));
   }
   const user = await UserModel.findById(id); // affilate
-  if(!user)
-    {
-     return next(new AppError("User not found",404));
-    } 
-  if(user.suspended )
-  {
-    return next(new AppError("User is not active",403));
+  if (!user) {
+    return next(new AppError("User not found", 404));
+  }
+  if (user.suspended) {
+    return next(new AppError("User is not active", 403));
   }
 
- 
-  let commision = amount;
-   if(currentUser._id == process.env.TELECRM_USER_ID &&  type == TRANSACTIONS_ENUM.CREDIT)
-      {
-          if(user.role == Role.GOLDUSER)
-          {
-            commision = amount * 0.2;
-          }
-          else
-          {
-            commision = amount * 0.1;
-          }
-      }
-      commision = Math.floor(commision);
-      if(commision < 1)
-      {
-         res.status(200).json({
-          success:true})
-          return
-      }
-        const session = await Mongoose.startSession();
+  let commision = Math.floor(amount);
+  if (commision < 1) {
+    res.status(200).json({
+      success: true,
+    });
+    return;
+  }
+  const session = await Mongoose.startSession();
   session.startTransaction();
-  
+
   try {
-   
-  
-    //       // add royalty points
-    //       const pointTobeAdded = amount * 0.05;
-    //       let customer = await UserModel.findOne({phone:req.body.lead.phone});
-    //       if(customer && status == TRANSACTIONS_STATUS_ENUM.SUCCESS)
-    //       {
-    //         customer.points = (customer.points||0)+pointTobeAdded;
-    //         customer.lifetimePointsEarnings = (customer.lifetimePointsEarnings||0)+pointTobeAdded;
-    //         await customer.save({session});
-    //       }
-    //       else
-    //         {
-    //           try
-    //           {
-
-    //             const [newCustomer] =  await UserModel.create(
-    //               [
-    //                 {
-    //                   name: req.body.lead.name,
-    //                   email:req.body.lead.email,
-    //                   phone:req.body.lead.phone,
-    //                   password:"sdjfalsdjfeijlkasdjf",
-    //                   points:status == TRANSACTIONS_STATUS_ENUM.SUCCESS?pointTobeAdded:0,
-    //                   lifetimePointsEarnings:status==TRANSACTIONS_STATUS_ENUM.SUCCESS?pointTobeAdded:0
-    //                 },
-    //               ],
-    //             );
-    //             customer = newCustomer;
-    //           }
-    //           catch(e)
-    //           {
-    //               console.log("no loyality points added to customer, as customer do not exist, and do not have email in laed, phone -",req.body.lead.phone);
-    //           }
-    //         }
-    //         // console.log("customer is ",customer);
-    //       const txnIdPoints = generateTxnId();
-    //       if(customer)
-    //       {
-
-    //         const transPoints =  await TransactionModel.create(
-    //           [
-    //             {
-    //               user: customer._id,
-    //               createdBy:currentUser._id,
-    //               type:TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT,
-    //               amount:pointTobeAdded,
-    //               reference,
-    //               txnId:txnIdPoints,
-    //               status:status,
-    //               comment:"AUTO: Loyality points earned",
-    //             },
-    //           ],
-    //           { session }
-    //         );
-    //       }
-
-  
-    //   } 
-    
-  
-    if(commision > 0&& status == TRANSACTIONS_STATUS_ENUM.SUCCESS){
+    if (commision > 0 && status == TRANSACTIONS_STATUS_ENUM.SUCCESS) {
       switch (type) {
-      case TRANSACTIONS_ENUM.CREDIT:
-        user.balance = (user.balance || 0) + commision;
-        user.lifetimeEarnings = (user.lifetimeEarnings || 0)+ commision;
-        break;
-      case TRANSACTIONS_ENUM.DEBIT:
-        if ((user.balance || 0) < commision) {
-          throw new AppError("Insufficient funds", 400);
-        }
-        user.lifetimeEarnings = user.lifetimeEarnings - commision;
-        user.balance = user.balance - commision;
-        break;
-      case TRANSACTIONS_ENUM.WITHDRAWAL:
-        if ((user.balance || 0) < commision) {
-          throw new AppError("Insufficient funds", 400);
-        }
-        user.balance = user.balance - commision;
-        user.lifetimeWithdrawn = (user.lifetimeWithdrawn||0)+commision;
-        break;
-      case TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT:
-        user.points = (user.points||0)+commision;
-        user.lifetimePointsEarnings = (user.lifetimePointsEarnings||0)+commision;
-        break;
-      case TRANSACTIONS_ENUM.LOYALITY_POINT_DEBIT:
-        if ((user.points || 0) < commision) {
-          throw new AppError("Insufficient funds", 400);
-        }
-        user.points = user.points-commision;
-        user.lifetimePointsWithdrawn = user.lifetimePointsWithdrawn + commision;
-        break;
-      default:
-        throw new AppError("invalid transaction type");
+        case TRANSACTIONS_ENUM.CREDIT:
+          user.balance = (user.balance || 0) + commision;
+          user.lifetimeEarnings = (user.lifetimeEarnings || 0) + commision;
+          break;
+        case TRANSACTIONS_ENUM.DEBIT:
+          if ((user.balance || 0) < commision) {
+            throw new AppError("Insufficient funds", 400);
+          }
+          user.lifetimeEarnings = user.lifetimeEarnings - commision;
+          user.balance = user.balance - commision;
+          break;
+        case TRANSACTIONS_ENUM.WITHDRAWAL:
+          if ((user.balance || 0) < commision) {
+            throw new AppError("Insufficient funds", 400);
+          }
+          user.balance = user.balance - commision;
+          user.lifetimeWithdrawn = (user.lifetimeWithdrawn || 0) + commision;
+          break;
+        case TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT:
+          user.points = (user.points || 0) + commision;
+          user.lifetimePointsEarnings =
+            (user.lifetimePointsEarnings || 0) + commision;
+          break;
+        case TRANSACTIONS_ENUM.LOYALITY_POINT_DEBIT:
+          if ((user.points || 0) < commision) {
+            throw new AppError("Insufficient funds", 400);
+          }
+          user.points = user.points - commision;
+          user.lifetimePointsWithdrawn =
+            user.lifetimePointsWithdrawn + commision;
+          break;
+        default:
+          throw new AppError("invalid transaction type");
+      }
+      await user.save({ session });
     }
-    await user.save({session});
-  }
     const txnId = generateTxnId();
-  //  console.log("user is ",user);
-   
-   const trans =  await TransactionModel.create(
+
+    const trans = await TransactionModel.create(
       [
         {
           user: user._id,
-          createdBy:currentUser._id,
+          createdBy: currentUser._id,
           type,
-          amount:commision,
+          amount: commision,
           reference,
           txnId,
-          status:status,
+          status: status,
           comment,
         },
       ],
       { session }
     );
-    
 
     await session.commitTransaction();
     session.endSession();
-    sendTransactionEmail(user.email,type,commision);
+    sendTransactionEmail(user.email, type, commision);
     res.status(200).json({
-      success:true,
+      success: true,
       data: { transaction: trans[0], user: user },
     });
   } catch (err) {
@@ -232,115 +178,95 @@ export const addTransaction = catchAsync(async (req, res,next) => {
   }
 });
 
+export const cancelAllPaymentsForLead = async (leadId,session) => {
+  await TransactionModel.updateMany(
+    { reference: leadId, status: TRANSACTIONS_STATUS_ENUM.PENDING },
+    { $set: { status: TRANSACTIONS_STATUS_ENUM.CANCLED } },{session}
+  );
+};
 
-export const cancelAllPaymentsForLead = async(leadId)=>
-{
-    await TransactionModel.updateMany(
-  { reference: leadId, status: TRANSACTIONS_STATUS_ENUM.PENDING },
-  { $set: { status: TRANSACTIONS_STATUS_ENUM.CANCLED } }
-);
-}
+export const doneAllPaymentsForLead = async (leadId, session) => {
+  const transactionsToBeUpdated = await TransactionModel.find({
+    reference: leadId,
+    status: TRANSACTIONS_STATUS_ENUM.PENDING,
+  }).session(session);
 
-export const doneAllPaymentsForLead = async (leadId) => {
-  const session = await Mongoose.startSession();
-  
-  try {
-    await session.withTransaction(async () => {
+  for (const val of transactionsToBeUpdated) {
+    const user = await UserModel.findById(val.user).session(session);
+    const commission = Number(val.amount) || 0;
 
-      const transactionsToBeUpdated = await TransactionModel
-        .find({ reference: leadId, status: TRANSACTIONS_STATUS_ENUM.PENDING })
-        .session(session);
+    switch (val.type) {
+      case TRANSACTIONS_ENUM.CREDIT:
+        user.balance = (user.balance || 0) + commission;
+        user.lifetimeEarnings = (user.lifetimeEarnings || 0) + commission;
+        break;
 
-      for (const val of transactionsToBeUpdated) {
-
-        const user = await UserModel.findById(val.user).session(session);
-        const commision = val.amount;
-
-        switch (val.type) {
-          case TRANSACTIONS_ENUM.CREDIT:
-            user.balance = (user.balance || 0) + commision;
-            user.lifetimeEarnings = (user.lifetimeEarnings || 0) + commision;
-            break;
-
-          case TRANSACTIONS_ENUM.DEBIT:
-            if ((user.balance || 0) < commision) {
-              throw new AppError("Insufficient funds", 400);
-            }
-            user.lifetimeEarnings -= commision;
-            user.balance -= commision;
-            break;
-
-          case TRANSACTIONS_ENUM.WITHDRAWAL:
-            if ((user.balance || 0) < commision) {
-              throw new AppError("Insufficient funds", 400);
-            }
-            user.balance -= commision;
-            user.lifetimeWithdrawn = (user.lifetimeWithdrawn || 0) + commision;
-            break;
-
-          case TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT:
-            user.points = (user.points || 0) + commision;
-            user.lifetimePointsEarnings =
-              (user.lifetimePointsEarnings || 0) + commision;
-            break;
-
-          case TRANSACTIONS_ENUM.LOYALITY_POINT_DEBIT:
-            if ((user.points || 0) < commision) {
-              throw new AppError("Insufficient funds", 400);
-            }
-            user.points -= commision;
-            user.lifetimePointsWithdrawn =
-              (user.lifetimePointsWithdrawn || 0) + commision;
-            break;
-
-          default:
-            throw new AppError("Invalid transaction type");
+      case TRANSACTIONS_ENUM.DEBIT:
+        if ((user.balance || 0) < commission) {
+          throw new AppError("Insufficient funds", 400);
         }
+        user.lifetimeEarnings -= commission;
+        user.balance -= commission;
+        break;
 
-        await user.save({ session });
-      }
+      case TRANSACTIONS_ENUM.WITHDRAWAL:
+        if ((user.balance || 0) < commission) {
+          throw new AppError("Insufficient funds", 400);
+        }
+        user.balance -= commission;
+        user.lifetimeWithdrawn = (user.lifetimeWithdrawn || 0) + commission;
+        break;
 
-      await TransactionModel.updateMany(
-        { reference: leadId, status: TRANSACTIONS_STATUS_ENUM.PENDING },
-        { $set: { status: TRANSACTIONS_STATUS_ENUM.SUCCESS } },
-        { session }
-      );
-    });
+      case TRANSACTIONS_ENUM.LOYALITY_POINT_CREDIT:
+        user.points = (user.points || 0) + commission;
+        user.lifetimePointsEarnings = (user.lifetimePointsEarnings || 0) + commission;
+        break;
 
-  } catch (e) {
-    console.error("Transaction failed:", e);
-    throw e;
-  } finally {
-    session.endSession();
+      case TRANSACTIONS_ENUM.LOYALITY_POINT_DEBIT:
+        if ((user.points || 0) < commission) {
+          throw new AppError("Insufficient points", 400);
+        }
+        user.points -= commission;
+        user.lifetimePointsWithdrawn = (user.lifetimePointsWithdrawn || 0) + commission;
+        break;
+
+      default:
+        throw new AppError("Invalid transaction type", 400);
+    }
+
+    await user.save({ session });
   }
+
+  await TransactionModel.updateMany(
+    { reference: leadId, status: TRANSACTIONS_STATUS_ENUM.PENDING },
+    { $set: { status: TRANSACTIONS_STATUS_ENUM.SUCCESS } },
+    { session }
+  );
 };
 
 // Get user wallet details
-export const getWallet = catchAsync(async (req, res,next) => {
+export const getWallet = catchAsync(async (req, res, next) => {
   const { email } = req.body;
-  const user = await UserModel.findOne({email});
-  if(!user)
-  {
-    return next(new AppError("User not found",404));
+  const user = await UserModel.findOne({ email });
+  if (!user) {
+    return next(new AppError("User not found", 404));
   }
-  if(user.suspended || !user.verifiedEmail)
-  {
-    return next(new AppError("User is banned",403));
+  if (user.suspended || !user.verifiedEmail) {
+    return next(new AppError("User is banned", 403));
   }
-  const wallet = await WalletModel.findOne({user:user._id});
-  if(!wallet)
-  {
-    return next(new AppError("Wallet not found",404));
+  const wallet = await WalletModel.findOne({ user: user._id });
+  if (!wallet) {
+    return next(new AppError("Wallet not found", 404));
   }
   res.status(200).json({
-    success:true,
-    data:{user,wallet}
+    success: true,
+    data: { user, wallet },
   });
 });
 
-export const getTransactions = catchAsync(async (req, res,next) => {
-  const { id, page = 1, limit = 25 ,search} = req.body;
-  const user = await UserModel.findById( id );
+export const getTransactions = catchAsync(async (req, res, next) => {
+  const { id, page = 1, limit = 25, search } = req.body;
+  const user = await UserModel.findById(id);
   if (!user) {
     return next(new AppError("User not found", 404));
   }
@@ -362,7 +288,7 @@ export const getTransactions = catchAsync(async (req, res,next) => {
       transactions,
       total,
       page: page,
-      limit: limit
+      limit: limit,
     },
   });
-})
+});
