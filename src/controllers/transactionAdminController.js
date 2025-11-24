@@ -25,9 +25,12 @@ export const addLoyalityPoints = async (amount, phone, telecrmUser, leadId, sess
   if (telecrmUser._id.toString() !== String(process.env.TELECRM_USER_ID)) {
     throw new AppError("invalid user, user is not telecrm, can't add loyalty", 403);
   }
-
-  if (amount === undefined || amount === null || !phone || !leadId) {
+  if ( !phone || !leadId) {
     throw new AppError("Amount or phone or leadId is missing", 403);
+  }
+  if(!amount || isNaN(amount) || amount < 1)
+  {
+    return
   }
 
   // compute loyalty as floor(amount * 0.05)
