@@ -312,27 +312,35 @@ export const checkIfTeleCRM = catchAsync(async (req, res, next) => {
   next();
 });
 export const updateLead = catchAsync(async (req, res, next) => {
-  const { amount, status, leadId, phone } = req.body;
+  const { amount, status, leadId, phone , paymentId} = req.body;
 
-  if (!leadId || !status || !phone) {
+  if (!leadId || !status || !phone ) {
     return next(new AppError("leadId, status, phone are required", 400));
   }
   let trimmedPhone = String(phone);
   if (trimmedPhone.startsWith("91") && trimmedPhone.length === 12) {
     trimmedPhone = trimmedPhone.substring(2);
   }
-
+  if(paymentId)
+      {
+          const transactionWithSameId = await TransactionModel.findOne({txnId:paymentId});
+          if(transactionWithSameId) {
+            throw new AppError("Duplicate Payment ID",409)
+          }
+      }
   const session = await mongoose.startSession();
   try {
     await session.withTransaction(async () => {
-      const lead = await LeadsModel.findOne({ leadId }).session(session);
-      await addLoyalityPoints(amount, trimmedPhone, req.body.user, leadId, session);
-
+    
+     
       if (status === process.env.CREDIT_IF_STAGE_IS) {
         await doneAllPaymentsForLead(leadId, session);
       } else if (status === "Lost") {
         await cancelAllPaymentsForLead(leadId, session);
       }
+      await addLoyalityPoints(amount, trimmedPhone, req.body.user, leadId, session, paymentId);
+      
+      const lead = await LeadsModel.findOne({ leadId }).session(session);
 
       if (lead) {
         if (lead.status !== process.env.CREDIT_IF_STAGE_IS && lead.status !== "Lost") {
